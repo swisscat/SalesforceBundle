@@ -1,0 +1,23 @@
+{
+  "name": "swisscat/salesforce-bundle",
+  "type": "symfony-bundle",
+  "description": "A Salesforce bundle for Sylius framework",
+  "keywords": [ "salesforce", "sylius" ],
+  "homepage": "https://github.com/swisscat/SalesforceBundle",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Etienne Favre",
+      "email": "swisscatman@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.0",
+    "ddeboer/salesforce-mapper-bundle": "*",
+    "php-amqplib/rabbitmq-bundle": "1.*"
+  },
+  "autoload": {
+    "psr-4": { "Swisscat\\SalesforceMapperBundle\\": "" }
+  },
+  "minimum-stability": "dev"
+}

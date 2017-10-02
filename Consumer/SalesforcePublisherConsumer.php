@@ -1,6 +1,6 @@
 <?php
 
-namespace Swisscat\SalesforceMapperBundle\Consumer;
+namespace Swisscat\SalesforceBundle\Consumer;
 
 use Ddeboer\Salesforce\MapperBundle\MappedBulkSaverInterface;
 use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;

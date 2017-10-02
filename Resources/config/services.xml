@@ -5,12 +5,15 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
-        <service id="salesforce_mapper.publisher_consumer" class="Swisscat\SalesforceMapperBundle\Consumer\SalesforcePublisherConsumer">
+        <service id="sylius.consumer.salesforce" class="Swisscat\SalesforceBundle\Consumer\SalesforcePublisherConsumer">
             <argument type="service" id="ddeboer_salesforce_mapper.bulk_saver" />
         </service>
 
-        <service id="sylius.listener.salesforce_sync" class="Swisscat\SalesforceMapperBundle\Listener\SalesforceListener">
+        <service id="sylius.mapper.to_salesforce" class="Swisscat\SalesforceBundle\Mapper\SyliusEntityMapper" />
+
+        <service id="sylius.listener.salesforce_sync" class="Swisscat\SalesforceBundle\Listener\SalesforceListener">
             <argument type="service" id="old_sound_rabbit_mq.sync_salesforce_producer" />
+            <argument type="service" id="sylius.mapper.to_salesforce" />
             <tag name="kernel.event_listener" event="sylius.customer.post_register" method="addContact" />
         </service>
     </services>

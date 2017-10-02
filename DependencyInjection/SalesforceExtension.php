@@ -1,14 +1,13 @@
 <?php
 
-namespace Swisscat\SalesforceMapperBundle\DependencyInjection;
+namespace Swisscat\SalesforceBundle\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\Loader;
 
-
-class SalesforceMapperExtension extends Extension
+class SalesforceExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container)
     {

@@ -1,9 +1,9 @@
 <?php
 
-namespace Swisscat\SalesforceMapperBundle\Listener;
+namespace Swisscat\SalesforceBundle\Listener;
 
-use Ddeboer\Salesforce\MapperBundle\Model\Contact;
 use OldSound\RabbitMqBundle\RabbitMq\ProducerInterface;
+use Swisscat\SalesforceBundle\Mapper\SyliusEntityMapper;
 use Sylius\Component\Core\Model\Customer;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Webmozart\Assert\Assert;
@@ -15,25 +15,29 @@ class SalesforceListener
      */
     private $producer;
 
-    public function __construct(ProducerInterface $producer)
+    /**
+     * @var SyliusEntityMapper
+     */
+    private $mapper;
+
+    public function __construct(ProducerInterface $producer, SyliusEntityMapper $mapper)
     {
         $this->producer = $producer;
+        $this->mapper = $mapper;
     }
 
     public function addContact(GenericEvent $event)
     {
-        $user = $event->getSubject();
-        /** @var Customer $user */
+        $customer = $event->getSubject();
+        /** @var Customer $customer */
+        Assert::isInstanceOf($customer, Customer::class);
 
-        Assert::isInstanceOf($user, Customer::class);
-
-        $contact = new Contact();
-        $contact->setFirstName($user->getFirstName());
-        $contact->setLastName($user->getLastName());
-        $contact->setEmail($user->getEmail());
+        $sObject = $this->mapper->getContactFromCustomer($customer);
 
         $this->producer->publish(serialize([
-            'sObject' => $contact
+            'sObject' => $sObject,
+            'class' => Customer::class,
+            'id' => $customer->getId()
         ]));
     }
 }
