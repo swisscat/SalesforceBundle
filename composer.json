@@ -12,12 +12,14 @@
     }
   ],
   "require": {
-    "php": ">=7.0",
-    "ddeboer/salesforce-mapper-bundle": "*",
+    "php": ">=7.1",
+    "doctrine/common": "*",
+    "guzzlehttp/guzzle": "6.3.*",
+    "phpforce/soap-client": "*",
     "php-amqplib/rabbitmq-bundle": "1.*"
   },
   "autoload": {
-    "psr-4": { "Swisscat\\SalesforceMapperBundle\\": "" }
+    "psr-4": { "Swisscat\\SalesforceBundle\\": "src/" }
   },
   "minimum-stability": "dev"
 }

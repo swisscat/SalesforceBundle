@@ -1,10 +1,48 @@
-# SalesforceMapperBundle
-(Yet another) salesforce synchronization tool, using a RabbitMQ engine to defer and bulk synchronization.
+# [WORK IN PROGRESS] - SalesforceBundle
+(Yet another) Salesforce synchronization tool, using a RabbitMQ engine to defer and bulk synchronization.
+Using Streaming API to fetch back records from Salesforce.
+
+# Installation
+Require the bundle:
+```
+composer require swisscat/salesforce-bundle
+```
+Register the bundle:
+```
+// app/AppKernel.php
+
+public function registerBundles()
+{
+    $bundles = [
+        // ... ,
+        new \OldSound\RabbitMqBundle\OldSoundRabbitMqBundle(),
+        new \Swisscat\SalesforceBundle\SalesforceBundle(),
+    ];
+}
+```
+[Generate a Salesforce Enterprise WSDL](https://www.google.ch/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0ahUKEwj1iIaG4urWAhVLOMAKHbmLB8IQFggtMAE&url=https%3A%2F%2Fdeveloper.salesforce.com%2Fdocs%2Fatlas.en-us.api_meta.meta%2Fapi_meta%2Fmeta_quickstart_get_WSDLs.htm&usg=AOvVaw3b146uriu3vh1Jhv5Gnt4p)
+
+Fill in basic config
+
+```
+salesforce:
+    soap_client:
+        wsdl: "%kernel.root_dir%/config/sf.wsdl"
+        username: <username>
+        password: <password>
+        token: <token>
+```
+
+Update schema:
+```
+bin/console doctrine:migrations:diff
+bin/console doctrine:migrations:migrate
+```
 
 # Configuration
 Edit config.yml
 ```
-phpforce_salesforce:
+salesforce:
     soap_client:
         wsdl: "%kernel.root_dir%/config/sf.wsdl"
         username: <username>
@@ -28,6 +66,12 @@ old_sound_rabbit_mq:
             connection:       default
             exchange_options: {name: 'sync-salesforce', type: direct}
             service_alias:    sync_salesforce # no alias by default
+    consumers:
+        salesforce_back:
+            connection:       default
+            exchange_options: {name: 'salesforce', type: direct}
+            queue_options:    {name: 'salesforce'}
+            callback:         sylius.consumer.salesforce_back
     batch_consumers:
         sync_salesforce:
             connection:       default
@@ -40,4 +84,9 @@ old_sound_rabbit_mq:
 Run the command to process records
 ```
 bin/console rabbitmq:batch:consumer sync_salesforce
+```
+
+Run the command to fetch Topic Updates (See https://github.com/swisscat/salesforce-amqp-connector)
+```
+bin/console rabbitmq:consumer salesforce_back
 ```

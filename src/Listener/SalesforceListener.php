@@ -3,7 +3,7 @@
 namespace Swisscat\SalesforceBundle\Listener;
 
 use OldSound\RabbitMqBundle\RabbitMq\ProducerInterface;
-use Swisscat\SalesforceBundle\Mapper\SyliusEntityMapper;
+use Swisscat\SalesforceBundle\Mapper\Mapper;
 use Sylius\Component\Core\Model\Customer;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Webmozart\Assert\Assert;
@@ -16,11 +16,11 @@ class SalesforceListener
     private $producer;
 
     /**
-     * @var SyliusEntityMapper
+     * @var Mapper
      */
     private $mapper;
 
-    public function __construct(ProducerInterface $producer, SyliusEntityMapper $mapper)
+    public function __construct(ProducerInterface $producer, Mapper $mapper)
     {
         $this->producer = $producer;
         $this->mapper = $mapper;
@@ -32,7 +32,22 @@ class SalesforceListener
         /** @var Customer $customer */
         Assert::isInstanceOf($customer, Customer::class);
 
-        $sObject = $this->mapper->getContactFromCustomer($customer);
+        $sObject = $this->mapper->mapToSalesforceObject($customer);
+
+        $this->producer->publish(serialize([
+            'sObject' => $sObject,
+            'class' => Customer::class,
+            'id' => $customer->getId()
+        ]));
+    }
+
+    public function updateContact(GenericEvent $event)
+    {
+        $customer = $event->getSubject();
+        /** @var Customer $customer */
+        Assert::isInstanceOf($customer, Customer::class);
+
+        $sObject = $this->mapper->mapToSalesforceObject($customer);
 
         $this->producer->publish(serialize([
             'sObject' => $sObject,
