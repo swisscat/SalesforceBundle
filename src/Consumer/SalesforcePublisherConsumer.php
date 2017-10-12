@@ -8,8 +8,9 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Phpforce\SoapClient\Result\SaveResult;
 use Psr\Log\LoggerInterface;
 use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
-use Swisscat\SalesforceBundle\Mapper\BulkSaver;
-use Swisscat\SalesforceBundle\Mapper\ConfigurationProvider;
+use Swisscat\SalesforceBundle\Mapping\BulkSaver;
+use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
 
 class SalesforcePublisherConsumer implements BatchConsumerInterface
 {
@@ -19,9 +20,9 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
     private $entityManager;
 
     /**
-     * @var ConfigurationProvider
+     * @var DriverInterface
      */
-    private $configurationProvider;
+    private $mappingDriver;
 
     /**
      * @var LoggerInterface
@@ -36,14 +37,14 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
     /**
      * SalesforcePublisherConsumer constructor.
      * @param EntityManagerInterface $entityManager
-     * @param ConfigurationProvider $configurationProvider
+     * @param DriverInterface $mappingDriver
      * @param LoggerInterface $logger
      * @param BulkSaver $bulkSaver
      */
-    public function __construct(EntityManagerInterface $entityManager, ConfigurationProvider $configurationProvider, LoggerInterface $logger, BulkSaver $bulkSaver)
+    public function __construct(EntityManagerInterface $entityManager, DriverInterface $mappingDriver, LoggerInterface $logger, BulkSaver $bulkSaver)
     {
         $this->entityManager = $entityManager;
-        $this->configurationProvider = $configurationProvider;
+        $this->mappingDriver = $mappingDriver;
         $this->logger = $logger;
         $this->bulkSaver = $bulkSaver;
     }
@@ -60,19 +61,22 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
         $updates = [];
         $upserts = [];
         foreach ($messages as $key => $message) {
-            if (!($body = unserialize($message->body)) || !isset($body['sObject'])) {
+            if (false === $body = json_decode($message->body, true)) {
                 $this->logger->info('Invalid message content');
                 $this->logger->debug('Message body: '. $message->body);
                 continue;
             }
 
-            $config = $messageMetadata[$key]['config'] = $this->configurationProvider->getMappingInformation($body['class']);
+            $mappedObject = MappedObject::fromArray($body);
+
+            $metadata = $this->mappingDriver->loadMetadataForClass($mappedObject->getLocalType());
+
 
             $matchField = null;
 
-            if ($config->hasSalesforceMapping()) {
+            if ($metadata->hasSalesforceMapping()) {
                 $upserts[] = $key;
-                $matchField = $config->getSalesforceIdentifier();
+                $matchField = $metadata->getSalesforceIdentifier();
             } else {
                 $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $body['class'], 'entityId' => $body['id']]);
                 if (!$mapping) {

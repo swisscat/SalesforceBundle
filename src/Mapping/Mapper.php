@@ -2,19 +2,20 @@
 
 namespace Swisscat\SalesforceBundle\Mapping;
 
-use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
+use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
 
 class Mapper
 {
     /**
-     * @var XmlDriver
+     * @var DriverInterface
      */
     private $mappingDriver;
 
     /**
-     * @param XmlDriver $mappingDriver
+     * @param DriverInterface $mappingDriver
      */
-    public function __construct(XmlDriver $mappingDriver)
+    public function __construct(DriverInterface $mappingDriver)
     {
         $this->mappingDriver = $mappingDriver;
     }
@@ -25,16 +26,18 @@ class Mapper
      * The PHP object must be properly annoated
      *
      * @param mixed $model  PHP model object
-     * @return \stdClass
+     * @return MappedObject
      */
     public function mapToSalesforceObject($model)
     {
         $sObject = new \stdClass;
         $sObject->fieldsToNull = array();
 
-        $entityMapping = $this->mappingDriver->loadMetadataForClass(get_class($model));
+        $entityMapping = $this->mappingDriver->loadMetadataForClass($modelClass = get_class($model));
 
-        foreach ($entityMapping['fields'] as $salesforceField => $mapping) {
+        foreach ($entityMapping->getFieldNames() as $fieldName) {
+
+            $mapping = $entityMapping->getFieldMapping($fieldName);
 
             $isUpdateable = true;
             $isCreateable = true;
@@ -46,19 +49,19 @@ class Mapper
                 // for 'Id' field:
                 || $isIdLookup = true) {
 
-                $value = $model->{'get'.ucfirst($mapping['property'] ?? $salesforceField)}();
+                $value = $model->{'get'.ucfirst($mapping['name'] ?? $fieldName)}();
 
                 if (null === $value || (is_string($value) && $value === '')) {
                     // Do not set fieldsToNull on create
                     if ($model->getId()) {
-                        $sObject->fieldsToNull[] = $salesforceField;
+                        $sObject->fieldsToNull[] = $fieldName;
                     }
                 } else {
-                    $sObject->$salesforceField = $value;
+                    $sObject->$fieldName = $value;
                 }
             }
         }
 
-        return $sObject;
+        return new MappedObject($sObject, $model->getId(), $modelClass, 'Account');
     }
 }

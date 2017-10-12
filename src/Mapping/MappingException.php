@@ -8,4 +8,9 @@ class MappingException extends \Exception
     {
         return new self(sprintf("Could not find a mapping for class '%s'", $className));
     }
+
+    public static function xmlParsingException(\Exception $e)
+    {
+        return new self("XML parse failure", 0, $e);
+    }
 }

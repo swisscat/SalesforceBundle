@@ -2,11 +2,12 @@
 
 namespace Swisscat\SalesforceBundle\Mapping\Driver;
 
+use Swisscat\SalesforceBundle\Mapping\ClassMetadata;
 use Swisscat\SalesforceBundle\Mapping\MappingException;
 
-class XmlDriver
+class XmlDriver implements DriverInterface
 {
-    public function loadMetadataForClass($className)
+    public function loadMetadataForClass(string $className) : ClassMetadata
     {
         $partialClassName = substr($className, 1+strrpos($className, '\\'));
 
@@ -14,34 +15,45 @@ class XmlDriver
             throw MappingException::couldNotFindMappingForClass($className);
         }
 
-        $mapping = $this->loadMappingFile($fileName);
-
-        return reset($mapping);
+        return $this->loadClassFromMappingFile($className, $fileName);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function loadMappingFile($file)
+    protected function loadClassFromMappingFile(string $className, string $fileName)
     {
-        $result = [];
-        $xmlElement = simplexml_load_file($file);
+        $metadata = new ClassMetadata();
+
+        try {
+            $xmlElement = simplexml_load_file($fileName);
+        } catch (\Exception $e) {
+            throw MappingException::xmlParsingException($e);
+        }
 
         if (isset($xmlElement->entity)) {
             foreach ($xmlElement->entity as $entityElement) {
-                $entityName = (string)$entityElement['object'];
-                $result[$entityName] = [];
+                $entityClass = (string)$entityElement['class'];
+
+                if ($entityClass !== $className) {
+                    continue;
+                }
+
+                $metadata->setSalesforceType((string)$entityElement['object']);
 
                 if (isset($entityElement->property)) {
                     foreach ($entityElement->property as $propertyElement) {
                         $name = (string)$propertyElement['name'];
                         $field = (string)$propertyElement['field'];
-                        $result[$entityName]['fields'][$field] = $name;
+                        $metadata->setFieldMapping($field, ['name' => $name]);
+                    }
+                }
+
+                if (isset($entityElement->id)) {
+                    foreach ($entityElement->id as $idElement) {
+                        $metadata->setIdentifier($idElement);
                     }
                 }
             }
         }
 
-        return $result;
+        return $metadata;
     }
 }
