@@ -1,8 +1,6 @@
 <?php
 
-namespace Swisscat\SalesforceBundle\Mapper;
-
-use Doctrine\Common\Persistence\Mapping\Driver\MappingDriver;
+namespace Swisscat\SalesforceBundle\Mapping;
 
 use Phpforce\SoapClient\BulkSaver as BaseBulkSaver;
 use Phpforce\SoapClient\ClientInterface;

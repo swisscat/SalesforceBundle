@@ -1,7 +1,6 @@
 <?php
 
-namespace Swisscat\SalesforceBundle\Mapper;
-
+namespace Swisscat\SalesforceBundle\Mapping;
 
 class ConfigurationProvider
 {

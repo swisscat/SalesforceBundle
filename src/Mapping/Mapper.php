@@ -1,8 +1,8 @@
 <?php
 
-namespace Swisscat\SalesforceBundle\Mapper;
+namespace Swisscat\SalesforceBundle\Mapping;
 
-use Swisscat\SalesforceBundle\Mapper\Driver\XmlDriver;
+use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
 
 class Mapper
 {

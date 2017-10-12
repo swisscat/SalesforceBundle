@@ -10,7 +10,7 @@
             <argument type="service" id="salesforce.mapper.config" />
             <argument type="service" id="logger" />
             <argument type="service">
-                <service class="Swisscat\SalesforceBundle\Mapper\BulkSaver">
+                <service class="Swisscat\SalesforceBundle\Mapping\BulkSaver">
                     <argument type="service" id="salesforce.soap_client" />
                 </service>
             </argument>
@@ -20,13 +20,13 @@
             <argument type="service" id="logger" />
         </service>
 
-        <service id="salesforce.mapper.config" class="Swisscat\SalesforceBundle\Mapper\ConfigurationProvider">
+        <service id="salesforce.mapper.config" class="Swisscat\SalesforceBundle\Mapping\ConfigurationProvider">
             <!--<argument>%salesforce.mapper.config%</argument>-->
         </service>
 
-        <service id="sylius.mapper.to_salesforce" class="Swisscat\SalesforceBundle\Mapper\Mapper">
+        <service id="sylius.mapper.to_salesforce" class="Swisscat\SalesforceBundle\Mapping\Mapper">
             <argument type="service">
-                <service class="Swisscat\SalesforceBundle\Mapper\Driver\XmlDriver" />
+                <service class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
             </argument>
             <argument type="service" id="salesforce.mapper.config" />
         </service>

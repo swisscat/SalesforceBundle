@@ -3,7 +3,7 @@
 namespace Swisscat\SalesforceBundle\Listener;
 
 use OldSound\RabbitMqBundle\RabbitMq\ProducerInterface;
-use Swisscat\SalesforceBundle\Mapper\Mapper;
+use Swisscat\SalesforceBundle\Mapping\Mapper;
 use Sylius\Component\Core\Model\Customer;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Webmozart\Assert\Assert;

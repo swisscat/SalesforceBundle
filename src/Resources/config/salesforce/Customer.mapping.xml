@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--<salesforce-mapping xlmns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                    xlmns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://salesforce.com/ mapping-1.0.xsd">-->
+<salesforce-mapping>
+    <entity class="Sylius\Core\Model\Customer" object="Contact">
+        <property name="firstName" field="FirstName" />
+        <property name="lastName" field="LastName" />
+        <property name="email" field="Email" />
+    </entity>
+</salesforce-mapping>

@@ -1,6 +1,6 @@
 <?php
 
-namespace Swisscat\SalesforceBundle\Mapper;
+namespace Swisscat\SalesforceBundle\Mappin;
 
 use InvalidArgumentException;
 
