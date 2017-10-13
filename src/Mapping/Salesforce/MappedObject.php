@@ -7,7 +7,7 @@ use Webmozart\Assert\Assert;
 class MappedObject implements \JsonSerializable
 {
     /**
-     * @var object
+     * @var \stdClass
      */
     private $sObject;
 
@@ -43,7 +43,7 @@ class MappedObject implements \JsonSerializable
     /**
      * @return object
      */
-    public function getSObject(): object
+    public function getSObject(): \stdClass
     {
         return $this->sObject;
     }

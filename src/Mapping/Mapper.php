@@ -2,6 +2,7 @@
 
 namespace Swisscat\SalesforceBundle\Mapping;
 
+use Doctrine\Common\Util\ClassUtils;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
 use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
 
@@ -33,7 +34,7 @@ class Mapper
         $sObject = new \stdClass;
         $sObject->fieldsToNull = array();
 
-        $entityMapping = $this->mappingDriver->loadMetadataForClass($modelClass = get_class($model));
+        $entityMapping = $this->mappingDriver->loadMetadataForClass($modelClass = ClassUtils::getRealClass(get_class($model)));
 
         foreach ($entityMapping->getFieldNames() as $fieldName) {
 
@@ -62,6 +63,6 @@ class Mapper
             }
         }
 
-        return new MappedObject($sObject, $model->getId(), $modelClass, 'Account');
+        return new MappedObject($sObject, $model->getId(), $modelClass, $entityMapping->getSalesforceType());
     }
 }

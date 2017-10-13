@@ -48,12 +48,26 @@ class XmlDriver implements DriverInterface
 
                 if (isset($entityElement->id)) {
                     foreach ($entityElement->id as $idElement) {
-                        $metadata->setIdentifier($idElement);
+                        $metadata->setIdentifier([
+                            'name' => (string)$idElement['name'],
+                            'externalId' => (string)$idElement['externalId'],
+                        ]);
                     }
                 }
+
+                if (isset($entityElement->{'salesforce-id'})) {
+                    foreach ($entityElement->{'salesforce-id'} as $salesforceIdElement) {
+                        $metadata->setSalesforceIdLocalMapping([
+                            'type' => (string)$salesforceIdElement['type'],
+                            'property' => (string)$salesforceIdElement['property'],
+                        ]);
+                    }
+                }
+
+                return $metadata;
             }
         }
 
-        return $metadata;
+        throw MappingException::couldNotFindMappingForClass($className);
     }
 }

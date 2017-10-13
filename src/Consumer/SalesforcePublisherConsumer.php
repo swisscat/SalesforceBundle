@@ -61,41 +61,64 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
         $updates = [];
         $upserts = [];
         foreach ($messages as $key => $message) {
-            if (false === $body = json_decode($message->body, true)) {
+            if (null === $body = json_decode($message->body, true)) {
                 $this->logger->info('Invalid message content');
                 $this->logger->debug('Message body: '. $message->body);
+                $messageMetadata[$key]['valid'] = false;
                 continue;
             }
 
+            $messageMetadata[$key]['valid'] = true;
+
+            $body['sObject'] = (object)$body['sObject'];
+
             $mappedObject = MappedObject::fromArray($body);
 
-            $metadata = $this->mappingDriver->loadMetadataForClass($mappedObject->getLocalType());
-
+            $messageMetadata[$key]['metadata'] = $metadata = $this->mappingDriver->loadMetadataForClass($mappedObject->getLocalType());
 
             $matchField = null;
 
-            if ($metadata->hasSalesforceMapping()) {
+            $sObject = $mappedObject->getSObject();
+
+            if ($metadata->hasExternalIdMapping()) {
                 $upserts[] = $key;
-                $matchField = $metadata->getSalesforceIdentifier();
+                $matchField = $metadata->getExternalIdMapping();
             } else {
-                $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $body['class'], 'entityId' => $body['id']]);
-                if (!$mapping) {
-                    $mapping = new SalesforceMapping();
-                    $mapping->setEntityType($body['class']);
-                    $mapping->setEntityId($body['id']);
-                } else {
-                    $body['sObject']->id = $mapping->getSalesforceId();
+                $localMapping = $metadata->getSalesforceIdLocalMapping();
+
+                switch ($localMapping['type']) {
+                    case 'mappingTable':
+                        $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $mappedObject->getLocalType(), 'entityId' => $mappedObject->getLocalId()]);
+                        if (!$mapping) {
+                            $mapping = new SalesforceMapping();
+                            $mapping->setEntityType($mappedObject->getLocalType());
+                            $mapping->setEntityId($mappedObject->getLocalId());
+                        } else {
+                            $sObject->id = $mapping->getSalesforceId();
+                        }
+
+                        $messageMetadata[$key]['mapping'] = $mapping;
+                        break;
+
+                    case 'property':
+                        $entity = $this->entityManager->getRepository($mappedObject->getLocalType())->find($mappedObject->getLocalId());
+
+                        if ($id = $entity->{'get'.ucfirst($localMapping['property'])}()) {
+                            $sObject->id = $id;
+                        }
+
+                        $messageMetadata[$key]['entity'] = $entity;
+                        break;
                 }
 
-                $messageMetadata[$key]['mapping'] = $mapping;
-                if ($body['sObject']->id) {
+                if ($sObject->id) {
                     $updates[] = $key;
                 } else {
                     $creates[] = $key;
                 }
             }
 
-            $this->bulkSaver->save($body['sObject'], 'Contact', $matchField);
+            $this->bulkSaver->save($sObject, $mappedObject->getSalesforceType(), $matchField);
         }
 
         $bulkResult = $this->bulkSaver->flush();
@@ -113,6 +136,10 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
         $response = [];
 
         foreach ($messages as $key => $message) {
+            if (!$messageMetadata[$key]['valid']) {
+                $response[$key] = true;
+                continue;
+            }
             /** @var SaveResult $saveResult */
             $saveResult = $messageMetadata[$key]['result'];
             /** @var SalesforceMapping $mapping */
@@ -120,7 +147,7 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
 
             $response[$key] = $saveResult->isSuccess();
 
-            if ($messageMetadata[$key]['config']->hasClientMapping()) {
+            if ($localMapping = $messageMetadata[$key]['metadata']->getSalesforceIdLocalMapping()) {
                 if (!$mapping->getSalesforceId()) {
                     $mapping->setSalesforceId($saveResult->getId());
                     $this->entityManager->persist($mapping);

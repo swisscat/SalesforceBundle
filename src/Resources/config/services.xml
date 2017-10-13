@@ -34,6 +34,7 @@
                     <argument type="service" id="salesforce.mapping.driver" />
                 </service>
             </argument>
+            <argument type="service" id="old_sound_rabbit_mq.sync_salesforce_producer" />
         </service>
 
         <service id="sylius.listener.salesforce_sync" class="Swisscat\SalesforceBundle\Listener\SalesforceListener">

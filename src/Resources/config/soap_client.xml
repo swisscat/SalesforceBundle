@@ -22,6 +22,9 @@
             <argument>%salesforce.soap_client.username%</argument>
             <argument>%salesforce.soap_client.password%</argument>
             <argument>%salesforce.soap_client.token%</argument>
+            <call method="withLog">
+                <argument type="service" id="logger" />
+            </call>
         </service>
 
     </services>
