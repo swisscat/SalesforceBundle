@@ -8,7 +8,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Phpforce\SoapClient\Result\SaveResult;
 use Psr\Log\LoggerInterface;
 use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
-use Swisscat\SalesforceBundle\Mapping\BulkSaver;
+use Phpforce\SoapClient\BulkSaver;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
 use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
 

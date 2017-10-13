@@ -18,8 +18,17 @@
     "phpforce/soap-client": "*",
     "php-amqplib/rabbitmq-bundle": "1.*"
   },
+  "require-dev": {
+    "phpunit/phpunit": "*"
+  },
+  "config": {
+    "bin-dir": "bin"
+  },
   "autoload": {
     "psr-4": { "Swisscat\\SalesforceBundle\\": "src/" }
+  },
+  "autoload-dev": {
+    "psr-4": { "Swisscat\\SalesforceBundle\\Test\\": "tests/SalesforceBundle/" }
   },
   "minimum-stability": "dev"
 }
