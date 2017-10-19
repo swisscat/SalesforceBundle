@@ -24,6 +24,15 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('logging')->defaultValue('%kernel.debug%')->end()
                     ->end()
                 ->end()
+                ->arrayNode('streams')
+                    ->prototype('array')
+                        ->children()
+                            ->scalarNode('name')->isRequired()->end()
+                            ->scalarNode('type')->isRequired()->end()
+                            ->scalarNode('resource')->isRequired()->end()
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

@@ -10,5 +10,8 @@
         <property name="firstName" field="FirstName" />
         <property name="lastName" field="LastName" />
         <property name="email" field="Email" />
+<!--        <property name="defaultAddress">
+            <property name="city" field="OtherCity" />
+        </property>-->
     </entity>
 </salesforce-mapping>

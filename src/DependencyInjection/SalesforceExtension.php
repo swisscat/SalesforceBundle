@@ -21,6 +21,8 @@ class SalesforceExtension extends Extension
         foreach ($config['soap_client'] as $key => $value) {
             $container->setParameter('salesforce.soap_client.' . $key, $value);
         }
+
+        $container->setParameter('salesforce.streams', $config['streams'] ?? []);
     }
 
 }

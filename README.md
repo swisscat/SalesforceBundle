@@ -90,3 +90,15 @@ Run the command to fetch Topic Updates (See https://github.com/swisscat/salesfor
 ```
 bin/console rabbitmq:consumer salesforce_back
 ```
+
+# Roadmap
+
+- [ ] Refactor / cleanup
+- [ ] Add Tests
+- [ ] Improve RabbitMQ exchange configuration
+- [ ] Provide queue configurability on ecommerce
+- [ ] Handle failures on ecommerce publish
+- [ ] Generalize bundle for other providers (i.e magento)
+- [ ] Authentication with Token for Java API
+- [ ] Implement bundle logic for reconciliation (Master: SF/ECOM/storing conflicts)
+- [ ] Improve mapping definition (custom functions)

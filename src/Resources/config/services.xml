@@ -12,7 +12,9 @@
             <argument type="service" id="salesforce.soap_client.bulk_saver" />
         </service>
         <service id="sylius.consumer.salesforce_back" class="Swisscat\SalesforceBundle\Consumer\SalesforceBack">
+            <argument>%salesforce.streams%</argument>
             <argument type="service" id="doctrine.orm.default_entity_manager" />
+            <argument type="service" id="salesforce.mapping.driver" />
             <argument type="service" id="logger" />
         </service>
 
@@ -20,6 +22,7 @@
             <argument type="service">
                 <service class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
             </argument>
+            <argument type="service" id="doctrine.orm.default_entity_manager" />
         </service>
 
         <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />

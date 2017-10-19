@@ -13,4 +13,9 @@ class MappingException extends \Exception
     {
         return new self("XML parse failure", 0, $e);
     }
+
+    public static function invalidMappingDefinition(string $className, string $reason)
+    {
+        return new self(sprintf("Invalid mapping definition for class %s: %s", $className, $reason));
+    }
 }
