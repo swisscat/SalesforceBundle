@@ -8,8 +8,8 @@ interface ProducerInterface
     /**
      * Publish an object
      * @param mixed $object
-     * @param array $additionalProperties
+     * @param array $context
      * @return void
      */
-    public function publish($object, $additionalProperties = array()) : void ;
+    public function publish($object, array $context = array()) : void ;
 }

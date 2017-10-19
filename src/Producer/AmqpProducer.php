@@ -31,16 +31,15 @@ class AmqpProducer implements ProducerInterface
     }
 
     /**
-     * @param mixed $object
-     * @param array $additionalProperties
+     * @inheritdoc
      * @throws ProducerException
      */
-    public function publish($object, $additionalProperties = array()): void
+    public function publish($object, array $context = []): void
     {
         Assert::implementsInterface($object, ResourceInterface::class);
 
         try {
-            $mappedObject = $this->mapper->mapToSalesforceObject($object);
+            $mappedObject = $this->mapper->mapToSalesforceObject($object, $context['action']);
         } catch (MappingException $e) {
             throw ProducerException::fromMappingException($e);
         }

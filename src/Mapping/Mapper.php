@@ -6,7 +6,7 @@ use Doctrine\Common\Util\ClassUtils;
 use Doctrine\ORM\EntityManagerInterface;
 use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
-use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\SyncEvent;
 
 class Mapper
 {
@@ -35,46 +35,86 @@ class Mapper
      *
      * The PHP object must be properly annoated
      *
-     * @param mixed $model  PHP model object
-     * @return MappedObject
+     * @param mixed $entity  PHP model object
+     * @param string $action
+     * @return SyncEvent
      */
-    public function mapToSalesforceObject($model)
+    public function mapToSalesforceObject($entity, string $action)
     {
         $sObject = new \stdClass;
         $sObject->fieldsToNull = array();
 
-        $entityMapping = $this->mappingDriver->loadMetadataForClass($modelClass = $this->getClassRealName($model));
+        $entityMapping = $this->mappingDriver->loadMetadataForClass($modelClass = $this->getClassRealName($entity));
 
         $doctrineMetadata = $this->entityManager->getClassMetadata($modelClass);
 
         foreach ($entityMapping->getFieldNames() as $fieldName) {
-
             $mapping = $entityMapping->getFieldMapping($fieldName);
 
-            $isUpdateable = true;
-            $isCreateable = true;
+            $value = $doctrineMetadata->reflFields[$mapping['name'] ?? $fieldName]->getValue($entity);
 
-            // If the object is created, only allow creatable fields.
-            // If the object is updated, only allow updatable.
-            if (($model->getId() && $isUpdateable)
-                || (!$model->getId() && $isCreateable)
-                // for 'Id' field:
-                || $isIdLookup = true) {
-
-                $value = $doctrineMetadata->reflFields[$mapping['name'] ?? $fieldName]->getValue($model);
-
-                if (null === $value || (is_string($value) && $value === '')) {
-                    // Do not set fieldsToNull on create
-                    if ($model->getId()) {
-                        $sObject->fieldsToNull[] = $fieldName;
-                    }
-                } else {
-                    $sObject->$fieldName = $value;
+            if (null === $value || (is_string($value) && $value === '')) {
+                // Do not set fieldsToNull on create
+                if ($entity->getId()) {
+                    $sObject->fieldsToNull[] = $fieldName;
                 }
+            } else {
+                $sObject->$fieldName = $value;
             }
         }
 
-        return new MappedObject($sObject, $model->getId(), $modelClass, $entityMapping->getSalesforceType());
+        switch ($action) {
+            case Action::Create:
+                // No need to find SalesforceID on creations
+                break;
+            
+            case Action::Update:
+            case Action::Delete:
+                if (null === $salesforceId = $this->getSalesforceId($entity)) {
+                    throw new \LogicException('Invalid Mapping State');
+                }
+
+                $sObject->id = $salesforceId;
+                break;
+        }
+
+        return SyncEvent::fromArray([
+            'salesforce' => [
+                'sObject' => $sObject,
+                'type' => $entityMapping->getSalesforceType(),
+            ],
+            'local' => [
+                'id' => $entity->getId(),
+                'type' => $modelClass,
+            ],
+            'action' => $action
+        ]);
+    }
+
+    /**
+     * @param $entity
+     * @return string|null
+     */
+    private function getSalesforceId($entity)
+    {
+        $metadata = $this->mappingDriver->loadMetadataForClass($className = $this->getClassRealName($entity));
+
+        if (false === $localMapping = $metadata->getSalesforceIdLocalMapping()) {
+            return null;
+        }
+
+        switch ($localMapping['type']) {
+            case 'mappingTable':
+                $salesforceMappingObject = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $className, 'entityId' => $entity->getId()]);
+
+                return $salesforceMappingObject ? $salesforceMappingObject->getSalesforceId() : null;
+
+
+            case 'property':
+                $doctrineMetadata = $this->entityManager->getClassMetadata($className);
+
+                return $doctrineMetadata->reflFields[$localMapping['property']]->getValue($entity);
+        }
     }
 
     public function getEntity(string $entityType, string $salesforceId)
@@ -129,6 +169,15 @@ class Mapper
                 throw MappingException::invalidMappingDefinition($className, "Field does not exist");
             }
         }
+    }
+
+    /**
+     * @param string $className
+     * @return ClassMetadata
+     */
+    public function loadMetadataForClass(string $className)
+    {
+        return $this->mappingDriver->loadMetadataForClass($className);
     }
 
     /**

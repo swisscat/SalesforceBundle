@@ -7,10 +7,12 @@ use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 use Phpforce\SoapClient\Result\SaveResult;
 use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
 use Phpforce\SoapClient\BulkSaver;
-use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
-use Swisscat\SalesforceBundle\Mapping\Salesforce\MappedObject;
+use Swisscat\SalesforceBundle\Mapping\Action;
+use Swisscat\SalesforceBundle\Mapping\Mapper;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\SyncEvent;
 
 class SalesforcePublisherConsumer implements BatchConsumerInterface
 {
@@ -20,9 +22,9 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
     private $entityManager;
 
     /**
-     * @var DriverInterface
+     * @var Mapper
      */
-    private $mappingDriver;
+    private $mapper;
 
     /**
      * @var LoggerInterface
@@ -37,14 +39,14 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
     /**
      * SalesforcePublisherConsumer constructor.
      * @param EntityManagerInterface $entityManager
-     * @param DriverInterface $mappingDriver
+     * @param Mapper $mapper
      * @param LoggerInterface $logger
      * @param BulkSaver $bulkSaver
      */
-    public function __construct(EntityManagerInterface $entityManager, DriverInterface $mappingDriver, LoggerInterface $logger, BulkSaver $bulkSaver)
+    public function __construct(EntityManagerInterface $entityManager, Mapper $mapper, LoggerInterface $logger, BulkSaver $bulkSaver)
     {
         $this->entityManager = $entityManager;
-        $this->mappingDriver = $mappingDriver;
+        $this->mapper = $mapper;
         $this->logger = $logger;
         $this->bulkSaver = $bulkSaver;
     }
@@ -60,6 +62,8 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
         $creates = [];
         $updates = [];
         $upserts = [];
+        $deletes = [];
+
         foreach ($messages as $key => $message) {
             if (null === $body = json_decode($message->body, true)) {
                 $this->logger->info('Invalid message content');
@@ -70,60 +74,38 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
 
             $messageMetadata[$key]['valid'] = true;
 
-            $body['sObject'] = (object)$body['sObject'];
+            $syncEvent = SyncEvent::fromArray($body);
 
-            $mappedObject = MappedObject::fromArray($body);
-
-            $messageMetadata[$key]['metadata'] = $metadata = $this->mappingDriver->loadMetadataForClass($mappedObject->getLocalType());
+            $sObject = $syncEvent->getSObject();
+            $metadata = $this->mapper->loadMetadataForClass($syncEvent->getLocalType());
+            $action = $syncEvent->getAction();
 
             $matchField = null;
-
-            $sObject = $mappedObject->getSObject();
-
-            if ($metadata->hasExternalIdMapping()) {
-                $upserts[] = $key;
-                $matchField = $metadata->getExternalIdMapping();
-            } else {
-                $localMapping = $metadata->getSalesforceIdLocalMapping();
-
-                switch ($localMapping['type']) {
-                    case 'mappingTable':
-                        $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $mappedObject->getLocalType(), 'entityId' => $mappedObject->getLocalId()]);
-                        if (!$mapping) {
-                            $mapping = new SalesforceMapping();
-                            $mapping->setEntityType($mappedObject->getLocalType());
-                            $mapping->setEntityId($mappedObject->getLocalId());
+            switch ($action) {
+                case Action::Create:
+                case Action::Update:
+                    if ($metadata->hasExternalIdMapping()) {
+                        $upserts[] = $key;
+                        $matchField = $metadata->getExternalIdMapping();
+                    } else {
+                        if ($sObject->id) {
+                            $updates[] = $key;
                         } else {
-                            $sObject->id = $mapping->getSalesforceId();
+                            $creates[] = $key;
                         }
+                    }
+                    break;
 
-                        $messageMetadata[$key]['mapping'] = $mapping;
-                        break;
-
-                    case 'property':
-                        $entity = $this->entityManager->getRepository($mappedObject->getLocalType())->find($mappedObject->getLocalId());
-
-                        if ($id = $entity->{'get'.ucfirst($localMapping['property'])}()) {
-                            $sObject->id = $id;
-                        }
-
-                        $messageMetadata[$key]['entity'] = $entity;
-                        break;
-                }
-
-                if ($sObject->id) {
-                    $updates[] = $key;
-                } else {
-                    $creates[] = $key;
-                }
+                case Action::Delete:
+                    $deletes[] = $key;
             }
 
-            $this->bulkSaver->save($sObject, $mappedObject->getSalesforceType(), $matchField);
+            $this->bulkSaver->save($sObject, $syncEvent->getSObjectType(), $matchField);
         }
 
         $bulkResult = $this->bulkSaver->flush();
 
-        foreach ([$creates, $updates, $upserts] as $array) {
+        foreach ([$creates, $updates, $upserts, $deletes] as $array) {
             if ($array) {
                 foreach ($bulkResult[0] as $key => $result) {
                     $messageMetadata[$array[$key]]['result'] = $result;
@@ -142,15 +124,67 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
             }
             /** @var SaveResult $saveResult */
             $saveResult = $messageMetadata[$key]['result'];
-            /** @var SalesforceMapping $mapping */
-            $mapping = $messageMetadata[$key]['mapping'];
+
+            $syncEvent = SyncEvent::fromArray(json_decode($message->body,true));
+
+            $metadata = $this->mapper->loadMetadataForClass($syncEvent->getLocalType());
 
             $response[$key] = $saveResult->isSuccess();
 
-            if ($localMapping = $messageMetadata[$key]['metadata']->getSalesforceIdLocalMapping()) {
-                if (!$mapping->getSalesforceId()) {
-                    $mapping->setSalesforceId($saveResult->getId());
-                    $this->entityManager->persist($mapping);
+            if ($localMapping = $metadata->getSalesforceIdLocalMapping()) {
+                switch ($localMapping['type']) {
+                    case 'mappingTable':
+                        $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $syncEvent->getLocalType(), 'entityId' => $syncEvent->getLocalId()]);
+                        switch ($syncEvent->getAction()) {
+                            case Action::Update:
+                                if (!$mapping) {
+                                    $this->logger->log(LogLevel::ERROR, "Invalid mapping state on update");
+                                }
+                                break;
+
+                            case Action::Create:
+                                if (!$mapping) {
+                                    $mapping = new SalesforceMapping();
+                                    $mapping->setEntityType($syncEvent->getLocalType());
+                                    $mapping->setEntityId($syncEvent->getLocalId());
+                                }
+
+                                $mapping->setSalesforceId($saveResult->getId());
+
+                                $this->entityManager->persist($mapping);
+                                break;
+
+                            case Action::Delete:
+                                if (!$mapping) {
+                                    $this->logger->log(LogLevel::ERROR, "Invalid mapping state on delete");
+                                }
+
+                                $this->entityManager->remove($mapping);
+                                break;
+                        }
+
+                        break;
+
+                    case 'property':
+                        $entity = $this->entityManager->getRepository($syncEvent->getLocalType())->find($syncEvent->getLocalId());
+
+                        switch ($syncEvent->getAction()) {
+                            case Action::Update:
+                                break;
+
+                            case Action::Create:
+                                $doctrineMetadata = $this->entityManager->getClassMetadata($entity);
+
+                                $doctrineMetadata->reflFields[$localMapping['property']]->setValue($entity, $saveResult->getId());
+
+                                $this->entityManager->persist($entity);
+                                break;
+
+                            case Action::Delete:
+                                $this->entityManager->remove($entity);
+                                break;
+                        }
+                        break;
                 }
             }
         }

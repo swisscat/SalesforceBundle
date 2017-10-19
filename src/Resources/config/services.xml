@@ -7,7 +7,7 @@
     <services>
         <service id="sylius.consumer.salesforce" class="Swisscat\SalesforceBundle\Consumer\SalesforcePublisherConsumer">
             <argument type="service" id="doctrine.orm.default_entity_manager" />
-            <argument type="service" id="salesforce.mapping.driver" />
+            <argument type="service" id="salesforce.mapper" />
             <argument type="service" id="logger" />
             <argument type="service" id="salesforce.soap_client.bulk_saver" />
         </service>
@@ -18,7 +18,7 @@
             <argument type="service" id="logger" />
         </service>
 
-        <service id="sylius.mapper.to_salesforce" class="Swisscat\SalesforceBundle\Mapping\Mapper">
+        <service id="salesforce.mapper" class="Swisscat\SalesforceBundle\Mapping\Mapper">
             <argument type="service">
                 <service class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
             </argument>
@@ -28,18 +28,14 @@
         <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
 
         <service id="salesforce.producer" class="Swisscat\SalesforceBundle\Producer\AmqpProducer">
-            <argument type="service">
-                <service class="Swisscat\SalesforceBundle\Mapping\Mapper">
-                    <argument type="service" id="salesforce.mapping.driver" />
-                </service>
-            </argument>
+            <argument type="service" id="salesforce.mapper" />
             <argument type="service" id="old_sound_rabbit_mq.sync_salesforce_producer" />
         </service>
 
         <service id="sylius.listener.salesforce_sync" class="Swisscat\SalesforceBundle\Listener\SalesforceListener">
             <argument type="service" id="salesforce.producer" />
-            <tag name="kernel.event_listener" event="sylius.customer.post_register" method="publishEventSubject" />
-            <tag name="kernel.event_listener" event="sylius.customer.pre_update" method="publishEventSubject" />
+            <tag name="kernel.event_listener" event="sylius.customer.post_register" method="publishCreateEvent" />
+            <tag name="kernel.event_listener" event="sylius.customer.pre_update" method="publishUpdateEvent" />
         </service>
     </services>
 </container>

@@ -102,3 +102,4 @@ bin/console rabbitmq:consumer salesforce_back
 - [ ] Authentication with Token for Java API
 - [ ] Implement bundle logic for reconciliation (Master: SF/ECOM/storing conflicts)
 - [ ] Improve mapping definition (custom functions)
+- [ ] Implement mapping associations (entity relations)
