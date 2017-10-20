@@ -13,10 +13,11 @@
   ],
   "require": {
     "php": ">=7.1",
-    "doctrine/common": "*",
+    "doctrine/orm": "*",
     "guzzlehttp/guzzle": "6.3.*",
     "phpforce/soap-client": "*",
-    "php-amqplib/rabbitmq-bundle": "1.*"
+    "php-amqplib/rabbitmq-bundle": "1.*",
+    "symfony/http-kernel": "*"
   },
   "require-dev": {
     "phpunit/phpunit": "*"

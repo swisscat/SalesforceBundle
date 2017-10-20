@@ -94,7 +94,7 @@ bin/console rabbitmq:consumer salesforce_back
 # Roadmap
 
 - [ ] Refactor / cleanup
-- [ ] Add Tests
+- [ ] Complete tests
 - [ ] Improve RabbitMQ exchange configuration
 - [ ] Provide queue configurability on ecommerce
 - [ ] Handle failures on ecommerce publish

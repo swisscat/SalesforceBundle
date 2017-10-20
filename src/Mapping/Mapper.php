@@ -48,16 +48,15 @@ class Mapper
 
         $doctrineMetadata = $this->entityManager->getClassMetadata($modelClass);
 
+        $entityId = $doctrineMetadata->getReflectionProperty($doctrineMetadata->getIdentifier()[0])->getValue($entity);
+
         foreach ($entityMapping->getFieldNames() as $fieldName) {
             $mapping = $entityMapping->getFieldMapping($fieldName);
 
-            $value = $doctrineMetadata->reflFields[$mapping['name'] ?? $fieldName]->getValue($entity);
+            $value = $doctrineMetadata->getReflectionProperty($mapping['name'] ?? $fieldName)->getValue($entity);
 
             if (null === $value || (is_string($value) && $value === '')) {
-                // Do not set fieldsToNull on create
-                if ($entity->getId()) {
-                    $sObject->fieldsToNull[] = $fieldName;
-                }
+                $sObject->fieldsToNull[] = $fieldName;
             } else {
                 $sObject->$fieldName = $value;
             }
@@ -84,7 +83,7 @@ class Mapper
                 'type' => $entityMapping->getSalesforceType(),
             ],
             'local' => [
-                'id' => $entity->getId(),
+                'id' => $entityId,
                 'type' => $modelClass,
             ],
             'action' => $action
@@ -99,13 +98,17 @@ class Mapper
     {
         $metadata = $this->mappingDriver->loadMetadataForClass($className = $this->getClassRealName($entity));
 
+        $doctrineMetadata = $this->entityManager->getClassMetadata($className);
+
+        $entityId = $doctrineMetadata->getReflectionProperty($doctrineMetadata->getIdentifier()[0])->getValue($entity);
+
         if (false === $localMapping = $metadata->getSalesforceIdLocalMapping()) {
             return null;
         }
 
         switch ($localMapping['type']) {
             case 'mappingTable':
-                $salesforceMappingObject = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $className, 'entityId' => $entity->getId()]);
+                $salesforceMappingObject = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $className, 'entityId' => $entityId]);
 
                 return $salesforceMappingObject ? $salesforceMappingObject->getSalesforceId() : null;
 
@@ -113,7 +116,7 @@ class Mapper
             case 'property':
                 $doctrineMetadata = $this->entityManager->getClassMetadata($className);
 
-                return $doctrineMetadata->reflFields[$localMapping['property']]->getValue($entity);
+                return $doctrineMetadata->getReflectionProperty($localMapping['property'])->getValue($entity);
         }
     }
 

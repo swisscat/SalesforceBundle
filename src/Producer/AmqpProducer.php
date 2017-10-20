@@ -5,8 +5,6 @@ namespace Swisscat\SalesforceBundle\Producer;
 use OldSound\RabbitMqBundle\RabbitMq\ProducerInterface as AmqpProducerInterface;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
 use Swisscat\SalesforceBundle\Mapping\MappingException;
-use Sylius\Component\Resource\Model\ResourceInterface;
-use Webmozart\Assert\Assert;
 
 class AmqpProducer implements ProducerInterface
 {
@@ -36,8 +34,6 @@ class AmqpProducer implements ProducerInterface
      */
     public function publish($object, array $context = []): void
     {
-        Assert::implementsInterface($object, ResourceInterface::class);
-
         try {
             $mappedObject = $this->mapper->mapToSalesforceObject($object, $context['action']);
         } catch (MappingException $e) {

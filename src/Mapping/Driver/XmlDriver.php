@@ -4,14 +4,26 @@ namespace Swisscat\SalesforceBundle\Mapping\Driver;
 
 use Swisscat\SalesforceBundle\Mapping\ClassMetadata;
 use Swisscat\SalesforceBundle\Mapping\MappingException;
+use Symfony\Component\Config\Exception\FileLocatorFileNotFoundException;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\FileLocatorInterface;
 
 class XmlDriver implements DriverInterface
 {
+    private $fileLocator;
+
+    public function __construct(array $paths)
+    {
+        $this->fileLocator = new FileLocator($paths);
+    }
+
     public function loadMetadataForClass(string $className) : ClassMetadata
     {
         $partialClassName = substr($className, 1+strrpos($className, '\\'));
 
-        if (!file_exists($fileName = dirname(dirname(__DIR__)).'/Resources/config/salesforce/'.$partialClassName.'.mapping.xml')) {
+        try {
+            $fileName = $this->fileLocator->locate("$partialClassName.mapping.xml");
+        } catch (FileLocatorFileNotFoundException $e) {
             throw MappingException::couldNotFindMappingForClass($className);
         }
 

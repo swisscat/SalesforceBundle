@@ -18,14 +18,12 @@
             <argument type="service" id="logger" />
         </service>
 
+        <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
+
         <service id="salesforce.mapper" class="Swisscat\SalesforceBundle\Mapping\Mapper">
-            <argument type="service">
-                <service class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
-            </argument>
+            <argument type="service" id="salesforce.mapping.driver" />
             <argument type="service" id="doctrine.orm.default_entity_manager" />
         </service>
-
-        <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
 
         <service id="salesforce.producer" class="Swisscat\SalesforceBundle\Producer\AmqpProducer">
             <argument type="service" id="salesforce.mapper" />
