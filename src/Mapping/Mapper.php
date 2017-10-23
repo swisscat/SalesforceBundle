@@ -129,23 +129,10 @@ class Mapper
 
             $mapping = $entityMapping->getFieldMapping($fieldName);
 
-            $doctrineMetadata->reflFields[$mapping['name'] ?? $fieldName]->setValue($entity, $sObject->$fieldName);
+            $doctrineMetadata->getReflectionProperty($mapping['name'] ?? $fieldName)->setValue($entity, $sObject->$fieldName);
         }
 
         return $entity;
-    }
-
-    public function validateMapping(string $className)
-    {
-        $doctrineMetadata = $this->entityManager->getClassMetadata($className);
-
-        $salesforceMetadata = $this->mappingDriver->loadMetadataForClass($className);
-
-        foreach ($salesforceMetadata->getFieldNames() as $fieldName) {
-            if (!isset($doctrineMetadata->reflFields[$mapping['name'] ?? $fieldName])) {
-                throw MappingException::invalidMappingDefinition($className, "Field does not exist");
-            }
-        }
     }
 
     /**

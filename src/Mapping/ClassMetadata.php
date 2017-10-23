@@ -14,8 +14,6 @@ class ClassMetadata
 
     private $externalIdMapping = false;
 
-    private $localIdMapping = false;
-
     /**
      * @var StrategyInterface[]
      */
@@ -37,11 +35,6 @@ class ClassMetadata
     public function getFieldNames()
     {
         return array_keys($this->fieldMappings);
-    }
-
-    public function getIdentifier()
-    {
-        return $this->identifier;
     }
 
     public function setIdentifier(array $identifierData)
@@ -77,10 +70,5 @@ class ClassMetadata
     public function hasExternalIdMapping()
     {
         return (bool)$this->externalIdMapping;
-    }
-
-    public function getExternalIdMapping()
-    {
-        return $this->externalIdMapping;
     }
 }

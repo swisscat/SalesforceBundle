@@ -7,7 +7,7 @@
     <entity class="Swisscat\SalesforceBundle\Test\TestData\Customer" object="Contact">
         <id name="id" externalId="None" />
         <identification-strategies>
-            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy" />
+            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy" property="email"/>
         </identification-strategies>
         <property name="firstName" field="FirstName" />
         <property name="lastName" field="LastName" />

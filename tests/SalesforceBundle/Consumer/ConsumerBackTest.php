@@ -3,12 +3,15 @@
 namespace Swisscat\SalesforceBundle\Test\Consumer;
 
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityRepository;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Swisscat\SalesforceBundle\Consumer\SalesforceBack;
 use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
+use Swisscat\SalesforceBundle\Test\Mapper\CustomerLocalPropertyMapperTest;
 use Swisscat\SalesforceBundle\Test\TestCase;
+use Swisscat\SalesforceBundle\Test\TestData\Customer;
 
 class ConsumerBackTest extends TestCase
 {
@@ -17,19 +20,18 @@ class ConsumerBackTest extends TestCase
      */
     private $consumer;
 
-    /**
-     * @var
-     */
     private $logger;
+
+    private $em;
 
     public function setUp()
     {
-        $em = $this->createMock(EntityManager::class);
+        $this->em = $this->createMock(EntityManager::class);
         $driver = new XmlDriver([dirname(__DIR__).'/TestData/local_mapping_property']);
-        $driver->setEntityManager($em);
+        $driver->setEntityManager($this->em);
 
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->consumer = new SalesforceBack([['name' => 'TestTopic', 'type' => 'topic', 'resource' => 'Sylius\Component\Core\Model\Customer']], $em, $driver, $this->logger);
+        $this->consumer = new SalesforceBack([['name' => 'TestTopic', 'type' => 'topic', 'resource' => 'Swisscat\SalesforceBundle\Test\TestData\Customer']], $this->em, $driver, $this->logger);
     }
 
     public function testInvalidJsonExecution()
@@ -54,6 +56,46 @@ class ConsumerBackTest extends TestCase
         $this->expectExceptionMessage($exceptionMessage);
 
         $this->assertEquals($this->consumer->execute($message), false);
+    }
+
+    public function testLoggingOnNoEntity()
+    {
+        $this->logger->expects($this->once())
+            ->method('log')
+            ->with(LogLevel::INFO, 'No local storage');
+
+        $this->em->expects($this->once())
+            ->method('getRepository')
+            ->willReturn($repoMock = $this->createMock(EntityRepository::class));
+
+        $repoMock->expects($this->once())
+            ->method('findOneBy')
+            ->willReturn(null);
+
+        $message = new AMQPMessage('{"event":{"stream":"/topic/TestTopic"},"sobject":{"Id":"sf1234"}}');
+
+        $this->consumer->execute($message);
+    }
+
+    public function testEntityProperlyUpdated()
+    {
+        $this->em->expects($this->once())
+            ->method('getRepository')
+            ->willReturn($repoMock = $this->createMock(EntityRepository::class));
+
+        $repoMock->expects($this->once())
+            ->method('findOneBy')
+            ->willReturn($customer = new Customer());
+
+        list(,$metadata) = CustomerLocalPropertyMapperTest::generateCreateCustomerData();
+
+        $this->em->expects($this->once())
+            ->method('getClassMetadata')
+            ->willReturn($metadata);
+
+        $message = new AMQPMessage('{"event":{"stream":"/topic/TestTopic"},"sobject":{"Id":"sf1234","FirstName":"Test","LastName":"Consumer","Email":"test@test.com"}}');
+
+        $this->consumer->execute($message);
     }
 
     public function jsonMessageProvider()

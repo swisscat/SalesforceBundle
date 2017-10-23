@@ -12,6 +12,7 @@ use Swisscat\SalesforceBundle\Listener\SalesforceListener;
 use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
 use Swisscat\SalesforceBundle\Producer\AmqpProducer;
+use Swisscat\SalesforceBundle\Producer\ProducerException;
 use Swisscat\SalesforceBundle\Test\TestData\Customer;
 use Swisscat\SalesforceBundle\Test\TestCase;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -164,5 +165,57 @@ class CustomerProducerTest extends TestCase
 
         $evt = new GenericEvent($customer);
         $this->listener->publishDeleteEvent($evt);
+    }
+
+    public function testMapperFailureOnPublication()
+    {
+        $driver = new XmlDriver([dirname(__DIR__).'/TestData/Invalid']);
+        $driver->setEntityManager($this->em);
+        $listener = new SalesforceListener(new AmqpProducer(new Mapper($driver, $this->em),$this->amqp));
+
+        [$customer,$meta] = $this->generateCreateCustomerData();
+
+        $this->em->expects($this->any())
+            ->method('getClassMetadata')
+            ->willReturn($meta);
+
+        $this->expectException(ProducerException::class);
+        $this->expectExceptionMessage("A mapping exception occured");
+
+        $evt = new GenericEvent($customer);
+
+        $listener->publishUpdateEvent($evt);
+    }
+
+    public function testUpdateCustomerPublishEventFailsOnAmqp()
+    {
+        [$customer,$meta] = $this->generateCreateCustomerData();
+
+        $this->em->expects($this->any())
+            ->method('getClassMetadata')
+            ->willReturn($meta);
+
+        $repo = $this->createMock(EntityRepository::class);
+
+        $mapping = new SalesforceMapping();
+        $mapping->setSalesforceId('sf1234');
+
+        $repo->expects($this->once())
+            ->method('findOneBy')
+            ->willReturn($mapping);
+
+        $this->em->expects($this->once())
+            ->method('getRepository')
+            ->willReturn($repo);
+
+        $this->amqp->expects($this->once())
+            ->method('publish')
+            ->willThrowException(new \Exception());
+
+        $this->expectException(ProducerException::class);
+        $this->expectExceptionMessage("Object publication failed");
+
+        $evt = new GenericEvent($customer);
+        $this->listener->publishUpdateEvent($evt);
     }
 }

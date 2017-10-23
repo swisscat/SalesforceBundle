@@ -38,7 +38,8 @@ class PropertyStrategy implements StrategyInterface
     {
         switch ($action) {
             case Action::Create:
-                $doctrineMetadataProperty = $this->getEntityMetadata($entity)->getReflectionProperty($this->property);
+                $entity = $this->entityManager->getRepository($localType)->find($localId);
+                $doctrineMetadataProperty = $this->entityManager->getClassMetadata($localType)->getReflectionProperty($this->property);
                 $doctrineMetadataProperty->setValue($entity, $salesforceId);
 
                 $this->entityManager->persist($entity);
