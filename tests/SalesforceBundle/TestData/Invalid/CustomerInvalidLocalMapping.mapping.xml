@@ -6,9 +6,14 @@
                                         https://raw.githubusercontent.com/swisscat/SalesforceBundle/master/src/Resources/config/salesforce/schema/mapping-1.0.xsd">
     <entity class="Swisscat\SalesforceBundle\Test\TestData\CustomerInvalidLocalMapping" object="Contact">
         <id name="id" externalId="None" />
-        <salesforce-id type="badLocalMappingType" />
+        <identification-strategies>
+            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\InvalidStrategy" />
+        </identification-strategies>
         <property name="firstName" field="FirstName" />
         <property name="lastName" field="LastName" />
         <property name="email" field="Email" />
+        <!--        <property name="defaultAddress">
+                    <property name="city" field="OtherCity" />
+                </property>-->
     </entity>
 </salesforce-mapping>

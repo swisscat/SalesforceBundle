@@ -36,7 +36,7 @@ class XmlMapperTest extends TestCase
         $mapper = new Mapper($xmlDriver, $this->createMock(EntityManager::class));
 
         $this->expectException(MappingException::class);
-        $this->expectExceptionMessage("Invalid mapping definition for class ".Customer::class.'InvalidLocalMapping'.': Invalid local mapping type');
+        $this->expectExceptionMessage("Invalid mapping definition for class ".Customer::class.'InvalidLocalMapping'.': Invalid identification strategy');
         $mapper->getEntity(Customer::class.'InvalidLocalMapping', 'sf1234');
     }
 }

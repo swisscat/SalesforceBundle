@@ -6,7 +6,9 @@
                                         https://raw.githubusercontent.com/swisscat/SalesforceBundle/master/src/Resources/config/salesforce/schema/mapping-1.0.xsd">
     <entity class="Swisscat\SalesforceBundle\Test\TestData\Customer" object="Contact">
         <id name="id" externalId="None" />
-        <salesforce-id type="property" property="salesforceId" />
+        <identification-strategies>
+            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy" />
+        </identification-strategies>
         <property name="firstName" field="FirstName" />
         <property name="lastName" field="LastName" />
         <property name="email" field="Email" />

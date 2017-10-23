@@ -2,6 +2,8 @@
 
 namespace Swisscat\SalesforceBundle\Mapping;
 
+use Swisscat\SalesforceBundle\Mapping\Identification\StrategyInterface;
+
 class ClassMetadata
 {
     private $fieldMappings = [];
@@ -13,6 +15,24 @@ class ClassMetadata
     private $externalIdMapping = false;
 
     private $localIdMapping = false;
+
+    /**
+     * @var StrategyInterface[]
+     */
+    private $identificationStrategies = [];
+
+    public function addIdentificationStrategy(StrategyInterface $strategy): void
+    {
+        $this->identificationStrategies[] = $strategy;
+    }
+
+    /**
+     * @return StrategyInterface[]
+     */
+    public function getIdentificationStrategies()
+    {
+        return $this->identificationStrategies;
+    }
 
     public function getFieldNames()
     {
@@ -52,30 +72,6 @@ class ClassMetadata
         }
 
         return $this->fieldMappings[$fieldName];
-    }
-
-    public function setSalesforceIdLocalMapping(array $salesforceMappingData)
-    {
-        $this->localIdMapping['type'] = $salesforceMappingData['type'];
-
-        switch ($this->localIdMapping['type']) {
-            case 'mappingTable':
-                break;
-
-            case 'property':
-                $this->localIdMapping['property'] = $salesforceMappingData['property'];
-                break;
-        }
-    }
-
-    public function hasSalesforceIdLocalMapping()
-    {
-        return (bool)$this->localIdMapping;
-    }
-
-    public function getSalesforceIdLocalMapping()
-    {
-        return $this->localIdMapping;
     }
 
     public function hasExternalIdMapping()

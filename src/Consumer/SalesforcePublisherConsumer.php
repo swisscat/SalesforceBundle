@@ -2,13 +2,10 @@
 
 namespace Swisscat\SalesforceBundle\Consumer;
 
-use Doctrine\ORM\EntityManagerInterface;
 use OldSound\RabbitMqBundle\RabbitMq\BatchConsumerInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 use Phpforce\SoapClient\Result\SaveResult;
 use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
-use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
 use Phpforce\SoapClient\BulkSaver;
 use Swisscat\SalesforceBundle\Mapping\Action;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
@@ -16,11 +13,6 @@ use Swisscat\SalesforceBundle\Mapping\Salesforce\SyncEvent;
 
 class SalesforcePublisherConsumer implements BatchConsumerInterface
 {
-    /**
-     * @var EntityManagerInterface
-     */
-    private $entityManager;
-
     /**
      * @var Mapper
      */
@@ -38,14 +30,12 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
 
     /**
      * SalesforcePublisherConsumer constructor.
-     * @param EntityManagerInterface $entityManager
      * @param Mapper $mapper
      * @param LoggerInterface $logger
      * @param BulkSaver $bulkSaver
      */
-    public function __construct(EntityManagerInterface $entityManager, Mapper $mapper, LoggerInterface $logger, BulkSaver $bulkSaver)
+    public function __construct(Mapper $mapper, LoggerInterface $logger, BulkSaver $bulkSaver)
     {
-        $this->entityManager = $entityManager;
         $this->mapper = $mapper;
         $this->logger = $logger;
         $this->bulkSaver = $bulkSaver;
@@ -131,65 +121,10 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
 
             $response[$key] = $saveResult->isSuccess();
 
-            if ($localMapping = $metadata->getSalesforceIdLocalMapping()) {
-                switch ($localMapping['type']) {
-                    case 'mappingTable':
-                        $mapping = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $syncEvent->getLocalType(), 'entityId' => $syncEvent->getLocalId()]);
-                        switch ($syncEvent->getAction()) {
-                            case Action::Update:
-                                if (!$mapping) {
-                                    $this->logger->log(LogLevel::ERROR, "Invalid mapping state on update");
-                                }
-                                break;
-
-                            case Action::Create:
-                                if (!$mapping) {
-                                    $mapping = new SalesforceMapping();
-                                    $mapping->setEntityType($syncEvent->getLocalType());
-                                    $mapping->setEntityId($syncEvent->getLocalId());
-                                }
-
-                                $mapping->setSalesforceId($saveResult->getId());
-
-                                $this->entityManager->persist($mapping);
-                                break;
-
-                            case Action::Delete:
-                                if (!$mapping) {
-                                    $this->logger->log(LogLevel::ERROR, "Invalid mapping state on delete");
-                                }
-
-                                $this->entityManager->remove($mapping);
-                                break;
-                        }
-
-                        break;
-
-                    case 'property':
-                        $entity = $this->entityManager->getRepository($syncEvent->getLocalType())->find($syncEvent->getLocalId());
-
-                        switch ($syncEvent->getAction()) {
-                            case Action::Update:
-                                break;
-
-                            case Action::Create:
-                                $doctrineMetadata = $this->entityManager->getClassMetadata($entity);
-
-                                $doctrineMetadata->reflFields[$localMapping['property']]->setValue($entity, $saveResult->getId());
-
-                                $this->entityManager->persist($entity);
-                                break;
-
-                            case Action::Delete:
-                                $this->entityManager->remove($entity);
-                                break;
-                        }
-                        break;
-                }
+            foreach ($metadata->getIdentificationStrategies() as $identificationStrategy) {
+                $identificationStrategy->persistSalesforceAction($syncEvent->getSObject(), $saveResult->getId(), $syncEvent->getAction());
             }
         }
-
-        $this->entityManager->flush();
 
         return $response;
     }

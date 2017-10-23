@@ -26,7 +26,10 @@ class CustomerLocalPropertyMapperTest extends TestCase
     {
         $this->amqp = $this->createMock(Producer::class);
         $this->em = $this->createMock(EntityManager::class);
-        $this->listener = new SalesforceListener(new AmqpProducer(new Mapper(new XmlDriver([dirname(__DIR__).'/TestData/local_mapping_property']), $this->em),$this->amqp));
+
+        $driver = new XmlDriver([dirname(__DIR__).'/TestData/local_mapping_property']);
+        $driver->setEntityManager($this->em);
+        $this->listener = new SalesforceListener(new AmqpProducer(new Mapper($driver, $this->em),$this->amqp));
     }
 
     private function generateCreateCustomerData()

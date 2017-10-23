@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
+use Webmozart\Assert\Assert;
 
 class SalesforceBack implements ConsumerInterface
 {
@@ -59,12 +60,14 @@ class SalesforceBack implements ConsumerInterface
 
     public function execute(AMQPMessage $msg)
     {
-        if (false === $body = json_decode($msg->body, true)) {
+        if (null === $body = json_decode($msg->body, true)) {
             $this->logger->log(LogLevel::INFO, 'Invalid JSON');
             return false;
         }
 
+        Assert::keyExists($body, 'event');
         $eventMetadata = $body['event'];
+        Assert::keyExists($eventMetadata, 'stream');
 
         // Stream topic
         if (strpos($eventMetadata['stream'], '/topic/') === 0) {
@@ -73,6 +76,8 @@ class SalesforceBack implements ConsumerInterface
             throw new \InvalidArgumentException('Unsupported');
         }
 
+        Assert::keyExists($body, 'sobject');
+        Assert::keyExists($body['sobject'], 'Id');
         $salesforceId = $body['sobject']["Id"];
         $entityType = $config['resource'];
 

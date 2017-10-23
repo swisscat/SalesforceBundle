@@ -22,7 +22,7 @@
     <xs:complexType name="entity">
         <xs:sequence>
             <xs:element name="id" type="sf:id" minOccurs="1" maxOccurs="1"/>
-            <xs:element name="salesforce-id" type="sf:salesforce-id" minOccurs="0" maxOccurs="1" />
+            <xs:element name="identification-strategies" type="sf:identification-strategies" minOccurs="1" maxOccurs="1" />
             <xs:element name="property" type="sf:property" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="class" type="xs:string" use="required" />
@@ -42,9 +42,15 @@
         <xs:attribute name="externalId" type="xs:NMTOKEN" />
     </xs:complexType>
 
-    <xs:complexType name="salesforce-id">
-        <xs:attribute name="type" type="sf:salesforce-id-type" />
-        <xs:attribute name="property" type="xs:NMTOKEN" />
+    <xs:complexType name="identification-strategies">
+        <xs:sequence>
+            <xs:element name="strategy" type="sf:strategy" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="strategy">
+        <xs:attribute name="class" type="xs:string" use="required" />
+        <xs:attribute name="property" type="xs:string" />
     </xs:complexType>
 
     <xs:simpleType name="salesforce-id-type">

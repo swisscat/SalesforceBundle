@@ -4,7 +4,6 @@ namespace Swisscat\SalesforceBundle\Mapping;
 
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\ORM\EntityManagerInterface;
-use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
 use Swisscat\SalesforceBundle\Mapping\Salesforce\SyncEvent;
 
@@ -98,51 +97,26 @@ class Mapper
     {
         $metadata = $this->mappingDriver->loadMetadataForClass($className = $this->getClassRealName($entity));
 
-        $doctrineMetadata = $this->entityManager->getClassMetadata($className);
-
-        $entityId = $doctrineMetadata->getReflectionProperty($doctrineMetadata->getIdentifier()[0])->getValue($entity);
-
-        if (false === $localMapping = $metadata->getSalesforceIdLocalMapping()) {
-            return null;
+        foreach ($metadata->getIdentificationStrategies() as $identificationStrategy) {
+            if (null !== $salesforceId = $identificationStrategy->getSalesforceId($entity)) {
+                return $salesforceId;
+            }
         }
 
-        switch ($localMapping['type']) {
-            case 'mappingTable':
-                $salesforceMappingObject = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(['entityType' => $className, 'entityId' => $entityId]);
-
-                return $salesforceMappingObject ? $salesforceMappingObject->getSalesforceId() : null;
-
-
-            case 'property':
-                $doctrineMetadata = $this->entityManager->getClassMetadata($className);
-
-                return $doctrineMetadata->getReflectionProperty($localMapping['property'])->getValue($entity);
-        }
+        return null;
     }
 
     public function getEntity(string $entityType, string $salesforceId)
     {
         $metadata = $this->mappingDriver->loadMetadataForClass($entityType);
 
-        if (false  === $localMapping = $metadata->getSalesforceIdLocalMapping()) {
-            return null;
+        foreach ($metadata->getIdentificationStrategies() as $identificationStrategy) {
+            if (null !== $entity = $identificationStrategy->getEntityBySalesforceId($salesforceId, $entityType)) {
+                return $entity;
+            }
         }
 
-        switch ($localMapping['type']) {
-            case 'mappingTable':
-                $salesforceMappingObject = $this->entityManager->getRepository(SalesforceMapping::class)->findOneBy(compact('salesforceId', 'entityType'));
-                $entity = $this->entityManager->getRepository($entityType)->find($salesforceMappingObject->getEntityId());
-                break;
-
-            case 'property':
-                $entity = $this->entityManager->getRepository($entityType)->findOneBy([$localMapping['property'] => $salesforceId]);
-                break;
-
-            default:
-                throw MappingException::invalidMappingDefinition($entityType, "Invalid local mapping type");
-        }
-
-        return $entity;
+        return null;
     }
 
     public function mapFromSalesforceObject($sObject, $entity)
@@ -187,7 +161,7 @@ class Mapper
      * @param $entity
      * @return string
      */
-    private function getClassRealName($entity): string
+    public static function getClassRealName($entity): string
     {
         return ClassUtils::getRealClass(get_class($entity));
     }

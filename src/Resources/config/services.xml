@@ -6,7 +6,6 @@
 
     <services>
         <service id="sylius.consumer.salesforce" class="Swisscat\SalesforceBundle\Consumer\SalesforcePublisherConsumer">
-            <argument type="service" id="doctrine.orm.default_entity_manager" />
             <argument type="service" id="salesforce.mapper" />
             <argument type="service" id="logger" />
             <argument type="service" id="salesforce.soap_client.bulk_saver" />
@@ -18,7 +17,11 @@
             <argument type="service" id="logger" />
         </service>
 
-        <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver" />
+        <service id="salesforce.mapping.driver" class="Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver">
+            <call method="setEntityManager">
+                <argument type="service" id="doctrine.orm.default_entity_manager" />
+            </call>
+        </service>
 
         <service id="salesforce.mapper" class="Swisscat\SalesforceBundle\Mapping\Mapper">
             <argument type="service" id="salesforce.mapping.driver" />

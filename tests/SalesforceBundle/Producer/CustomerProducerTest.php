@@ -28,7 +28,10 @@ class CustomerProducerTest extends TestCase
     {
         $this->amqp = $this->createMock(Producer::class);
         $this->em = $this->createMock(EntityManager::class);
-        $this->listener = new SalesforceListener(new AmqpProducer(new Mapper(new XmlDriver([dirname(__DIR__).'/TestData']), $this->em),$this->amqp));
+
+        $driver = new XmlDriver([dirname(__DIR__).'/TestData']);
+        $driver->setEntityManager($this->em);
+        $this->listener = new SalesforceListener(new AmqpProducer(new Mapper($driver, $this->em),$this->amqp));
     }
 
     private function generateCreateCustomerData()
@@ -100,7 +103,9 @@ class CustomerProducerTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Invalid Mapping State');
 
-        $this->listener->publishUpdateEvent(new GenericEvent($customer));
+        $evt = new GenericEvent($customer);
+
+        $this->listener->publishUpdateEvent($evt);
     }
 
     public function testUpdateCustomerPublishEvent()
@@ -128,7 +133,8 @@ class CustomerProducerTest extends TestCase
             ->method('publish')
             ->with('{"salesforce":{"sObject":{"fieldsToNull":[],"FirstName":"First","LastName":"Last","Email":"customer@test.com","id":"sf1234"},"type":"Contact"},"local":{"id":"10","type":"Swisscat\\\\SalesforceBundle\\\\Test\\\\TestData\\\\Customer"},"action":"update"}');
 
-        $this->listener->publishUpdateEvent(new GenericEvent($customer));
+        $evt = new GenericEvent($customer);
+        $this->listener->publishUpdateEvent($evt);
     }
 
     public function testDeleteCustomerPublishEvent()
@@ -156,6 +162,7 @@ class CustomerProducerTest extends TestCase
             ->method('publish')
             ->with('{"salesforce":{"sObject":{"fieldsToNull":[],"FirstName":"First","LastName":"Last","Email":"customer@test.com","id":"sf1234"},"type":"Contact"},"local":{"id":"10","type":"Swisscat\\\\SalesforceBundle\\\\Test\\\\TestData\\\\Customer"},"action":"delete"}');
 
-        $this->listener->publishDeleteEvent(new GenericEvent($customer));
+        $evt = new GenericEvent($customer);
+        $this->listener->publishDeleteEvent($evt);
     }
 }

@@ -2,7 +2,11 @@
 
 namespace Swisscat\SalesforceBundle\Mapping\Driver;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Swisscat\SalesforceBundle\Mapping\ClassMetadata;
+use Swisscat\SalesforceBundle\Mapping\Identification\EntityManagedTrait;
+use Swisscat\SalesforceBundle\Mapping\Identification\MappingTableStrategy;
+use Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy;
 use Swisscat\SalesforceBundle\Mapping\MappingException;
 use Symfony\Component\Config\Exception\FileLocatorFileNotFoundException;
 use Symfony\Component\Config\FileLocator;
@@ -12,9 +16,16 @@ class XmlDriver implements DriverInterface
 {
     private $fileLocator;
 
+    private $entityManager;
+
     public function __construct(array $paths)
     {
         $this->fileLocator = new FileLocator($paths);
+    }
+
+    public function setEntityManager(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
     }
 
     public function loadMetadataForClass(string $className) : ClassMetadata
@@ -50,14 +61,6 @@ class XmlDriver implements DriverInterface
 
                 $metadata->setSalesforceType((string)$entityElement['object']);
 
-                if (isset($entityElement->property)) {
-                    foreach ($entityElement->property as $propertyElement) {
-                        $name = (string)$propertyElement['name'];
-                        $field = (string)$propertyElement['field'];
-                        $metadata->setFieldMapping($field, ['name' => $name]);
-                    }
-                }
-
                 if (isset($entityElement->id)) {
                     foreach ($entityElement->id as $idElement) {
                         $metadata->setIdentifier([
@@ -67,19 +70,54 @@ class XmlDriver implements DriverInterface
                     }
                 }
 
-                if (isset($entityElement->{'salesforce-id'})) {
-                    foreach ($entityElement->{'salesforce-id'} as $salesforceIdElement) {
-                        $metadata->setSalesforceIdLocalMapping([
-                            'type' => (string)$salesforceIdElement['type'],
-                            'property' => (string)$salesforceIdElement['property'],
-                        ]);
-                    }
-                }
+                $this->setFieldMappings($metadata, $entityElement);
+                $this->setIdentificationStrategies($metadata, $entityElement);
 
                 return $metadata;
             }
         }
 
         throw MappingException::couldNotFindMappingForClass($className);
+    }
+
+    private function setFieldMappings(ClassMetadata $metadata, \SimpleXMLElement $element)
+    {
+        if (isset($element->property)) {
+            foreach ($element->property as $propertyElement) {
+                $name = (string)$propertyElement['name'];
+                $field = (string)$propertyElement['field'];
+                $metadata->setFieldMapping($field, ['name' => $name]);
+            }
+        }
+    }
+
+    /**
+     * @param ClassMetadata $metadata
+     * @param \SimpleXMLElement $element
+     *
+     * @throws MappingException
+     */
+    private function setIdentificationStrategies(ClassMetadata $metadata, \SimpleXMLElement $element)
+    {
+        if (isset($element->{'identification-strategies'}->{'strategy'})) {
+            foreach ($element->{'identification-strategies'}->{'strategy'} as $strategyElement) {
+                $strategyClass = (string)$strategyElement['class'];
+
+                if (!class_exists($strategyClass)) {
+                    throw MappingException::invalidMappingDefinition((string)$element['class'], sprintf("Invalid identification strategy '%s'", $strategyClass));
+                }
+                $strategy = new $strategyClass();
+
+                if (isset(class_uses($strategy)[EntityManagedTrait::class])) {
+                    $strategy->setEntityManager($this->entityManager);
+                }
+
+                if ($strategy instanceof PropertyStrategy) {
+                    $strategy->setProperty((string)$strategyElement['property']);
+                }
+
+                $metadata->addIdentificationStrategy($strategy);
+            }
+        }
     }
 }
