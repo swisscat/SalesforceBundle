@@ -1,0 +1,8 @@
+salesforce:
+    soap_client:
+        wsdl: url-wsdl
+        username: auser
+        password: apass
+        token: atoken
+    streams:
+        - { name: 'TestTopic', type: 'topic', resource: 'Swisscat\SalesforceBundle\Test\TestData\Customer' }

@@ -20,7 +20,8 @@
     "symfony/http-kernel": "*"
   },
   "require-dev": {
-    "phpunit/phpunit": "*"
+    "phpunit/phpunit": "*",
+    "matthiasnoback/symfony-dependency-injection-test": "dev-master"
   },
   "config": {
     "bin-dir": "bin"
