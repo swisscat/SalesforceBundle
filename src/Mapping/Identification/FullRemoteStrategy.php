@@ -23,7 +23,7 @@ class FullRemoteStrategy implements StrategyInterface
     /**
      * @inheritdoc
      */
-    public function persistSalesforceAction($entity, string $salesforceId, string $action): void
+    public function persistSalesforceAction(string $localId, string $localType, string $salesforceId, string $action): void
     {
     }
 }

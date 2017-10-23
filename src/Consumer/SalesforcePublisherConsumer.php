@@ -78,7 +78,7 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
                         $upserts[] = $key;
                         $matchField = $metadata->getExternalIdMapping();
                     } else {
-                        if ($sObject->id) {
+                        if (isset($sObject->id)) {
                             $updates[] = $key;
                         } else {
                             $creates[] = $key;
@@ -122,7 +122,7 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
             $response[$key] = $saveResult->isSuccess();
 
             foreach ($metadata->getIdentificationStrategies() as $identificationStrategy) {
-                $identificationStrategy->persistSalesforceAction($syncEvent->getSObject(), $saveResult->getId(), $syncEvent->getAction());
+                $identificationStrategy->persistSalesforceAction($syncEvent->getLocalId(), $syncEvent->getLocalType(), $saveResult->getId(), $syncEvent->getAction());
             }
         }
 

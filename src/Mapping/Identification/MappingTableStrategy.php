@@ -2,6 +2,7 @@
 
 namespace Swisscat\SalesforceBundle\Mapping\Identification;
 
+use Doctrine\Common\Util\ClassUtils;
 use Swisscat\SalesforceBundle\Entity\SalesforceMapping;
 use Swisscat\SalesforceBundle\Mapping\Action;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
@@ -40,20 +41,23 @@ class MappingTableStrategy implements StrategyInterface
     /**
      * @inheritdoc
      */
-    public function persistSalesforceAction($entity, string $salesforceId, string $action): void
+    public function persistSalesforceAction(string $localId, string $localType, string $salesforceId, string $action): void
     {
+        $className = ClassUtils::getRealClass($localType);
         switch ($action) {
             case Action::Create:
                 $mappingEntity = new SalesforceMapping();
-                $mappingEntity->setEntityType(Mapper::getClassRealName($entity));
+                $mappingEntity->setEntityType($className);
                 $mappingEntity->setSalesforceId($salesforceId);
-                $mappingEntity->setEntityId($this->getEntityId($entity));
+                $mappingEntity->setEntityId($localId);
                 $this->entityManager->persist($mappingEntity);
                 break;
 
             case Action::Delete:
-                $mappingEntity = $this->getMappingEntity($entity);
-                $this->entityManager->remove($mappingEntity);
+               /* $mappingEntity = $this->getMappingEntity($entity);
+                $this->entityManager->remove($mappingEntity);*/
+
+               //TODO: Implement
                 break;
 
             case Action::Update:

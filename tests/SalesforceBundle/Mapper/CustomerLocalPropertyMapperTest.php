@@ -32,7 +32,7 @@ class CustomerLocalPropertyMapperTest extends TestCase
         $this->listener = new SalesforceListener(new AmqpProducer(new Mapper($driver, $this->em),$this->amqp));
     }
 
-    private function generateCreateCustomerData()
+    public static function generateCreateCustomerData()
     {
         $customer = new Customer();
 
@@ -72,7 +72,7 @@ class CustomerLocalPropertyMapperTest extends TestCase
 
     public function testCreateCustomerPublishEvent()
     {
-        [$customer,$meta] = $this->generateCreateCustomerData();
+        [$customer,$meta] = self::generateCreateCustomerData();
 
         $this->em->expects($this->once())
             ->method('getClassMetadata')
