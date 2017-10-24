@@ -87,7 +87,7 @@ class ConsumerBackTest extends TestCase
             ->method('findOneBy')
             ->willReturn($customer = new Customer());
 
-        list(,$metadata) = CustomerLocalPropertyMapperTest::generateCreateCustomerData();
+        $metadata = \Swisscat\SalesforceBundle\Test\Producer\TestCase::getCustomerMetadata();
 
         $this->em->expects($this->once())
             ->method('getClassMetadata')

@@ -8,11 +8,7 @@ class ClassMetadata
 {
     private $fieldMappings = [];
 
-    private $identifier;
-
     private $salesforceType;
-
-    private $externalIdMapping = false;
 
     /**
      * @var StrategyInterface[]
@@ -37,12 +33,6 @@ class ClassMetadata
         return array_keys($this->fieldMappings);
     }
 
-    public function setIdentifier(array $identifierData)
-    {
-        $this->identifier = $identifierData['name'];
-        $this->externalIdMapping = ($identifierData['externalId'] ?? 'None') != 'None' ?: false;
-    }
-
     public function getSalesforceType()
     {
         return $this->salesforceType;
@@ -65,10 +55,5 @@ class ClassMetadata
         }
 
         return $this->fieldMappings[$fieldName];
-    }
-
-    public function hasExternalIdMapping()
-    {
-        return (bool)$this->externalIdMapping;
     }
 }

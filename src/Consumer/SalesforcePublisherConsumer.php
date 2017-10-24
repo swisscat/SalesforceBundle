@@ -74,10 +74,15 @@ class SalesforcePublisherConsumer implements BatchConsumerInterface
             switch ($action) {
                 case Action::Create:
                 case Action::Update:
-                    if ($metadata->hasExternalIdMapping()) {
-                        $upserts[] = $key;
-                        $matchField = $metadata->getExternalIdMapping();
-                    } else {
+                    foreach ($metadata->getIdentificationStrategies() as $strategy) {
+                        if ($upsertFieldName = $strategy->getUpsertFieldName()) {
+                            $upserts[] = $key;
+                            $matchField = $upsertFieldName;
+                            break;
+                        }
+                    }
+
+                    if (!$matchField) {
                         if (isset($sObject->id)) {
                             $updates[] = $key;
                         } else {

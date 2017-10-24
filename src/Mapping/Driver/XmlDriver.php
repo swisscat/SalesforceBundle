@@ -5,6 +5,7 @@ namespace Swisscat\SalesforceBundle\Mapping\Driver;
 use Doctrine\ORM\EntityManagerInterface;
 use Swisscat\SalesforceBundle\Mapping\ClassMetadata;
 use Swisscat\SalesforceBundle\Mapping\Identification\EntityManagedTrait;
+use Swisscat\SalesforceBundle\Mapping\Identification\FullRemoteStrategy;
 use Swisscat\SalesforceBundle\Mapping\Identification\MappingTableStrategy;
 use Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy;
 use Swisscat\SalesforceBundle\Mapping\MappingException;
@@ -60,16 +61,6 @@ class XmlDriver implements DriverInterface
                 }
 
                 $metadata->setSalesforceType((string)$entityElement['object']);
-
-                if (isset($entityElement->id)) {
-                    foreach ($entityElement->id as $idElement) {
-                        $metadata->setIdentifier([
-                            'name' => (string)$idElement['name'],
-                            'externalId' => (string)$idElement['externalId'],
-                        ]);
-                    }
-                }
-
                 $this->setFieldMappings($metadata, $entityElement);
                 $this->setIdentificationStrategies($metadata, $entityElement);
 
@@ -114,6 +105,12 @@ class XmlDriver implements DriverInterface
 
                 if ($strategy instanceof PropertyStrategy) {
                     $strategy->setProperty((string)$strategyElement['property']);
+                }
+
+                if ($strategy instanceof FullRemoteStrategy) {
+                    if (isset($strategyElement['matchingField'])) {
+                        $strategy->setMatchingField((string)$strategyElement['matchingField']);
+                    }
                 }
 
                 $metadata->addIdentificationStrategy($strategy);

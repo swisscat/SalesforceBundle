@@ -5,7 +5,6 @@
                     xsi:schemaLocation="https://github.com/swisscat/SalesforceBundle
                                         https://raw.githubusercontent.com/swisscat/SalesforceBundle/master/src/Resources/config/salesforce/schema/mapping-1.0.xsd">
     <entity class="Swisscat\SalesforceBundle\Test\TestData\Customer" object="Contact">
-        <id name="id" externalId="None" />
         <identification-strategies>
             <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\PropertyStrategy" property="email"/>
         </identification-strategies>

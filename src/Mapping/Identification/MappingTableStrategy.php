@@ -68,6 +68,14 @@ class MappingTableStrategy implements StrategyInterface
     }
 
     /**
+     * @inheritdoc
+     */
+    public function getUpsertFieldName(): ?string
+    {
+        return null;
+    }
+
+    /**
      * @param $entity
      * @return null|SalesforceMapping
      */

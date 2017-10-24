@@ -5,6 +5,19 @@ namespace Swisscat\SalesforceBundle\Mapping\Identification;
 class FullRemoteStrategy implements StrategyInterface
 {
     /**
+     * @var string
+     */
+    private $matchingField;
+
+    /**
+     * @param string $matchingField
+     */
+    public function setMatchingField(string $matchingField)
+    {
+        $this->matchingField = $matchingField;
+    }
+
+    /**
      * @inheritdoc
      */
     public function getSalesforceId($entity): ?string
@@ -25,5 +38,13 @@ class FullRemoteStrategy implements StrategyInterface
      */
     public function persistSalesforceAction(string $localId, string $localType, string $salesforceId, string $action): void
     {
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getUpsertFieldName(): ?string
+    {
+        return $this->matchingField;
     }
 }

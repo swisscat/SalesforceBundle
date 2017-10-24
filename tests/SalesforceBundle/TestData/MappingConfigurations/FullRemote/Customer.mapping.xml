@@ -4,10 +4,11 @@
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:schemaLocation="https://github.com/swisscat/SalesforceBundle
                                         https://raw.githubusercontent.com/swisscat/SalesforceBundle/master/src/Resources/config/salesforce/schema/mapping-1.0.xsd">
-    <entity class="Sylius\Component\Core\Model\Customer" object="Contact">
+    <entity class="Swisscat\SalesforceBundle\Test\TestData\Customer" object="Contact">
         <identification-strategies>
-            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\MappingTableStrategy" />
+            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\FullRemoteStrategy" matchingField="ExternalId__c" />
         </identification-strategies>
+        <property name="id" field="ExternalId__c" />
         <property name="firstName" field="FirstName" />
         <property name="lastName" field="LastName" />
         <property name="email" field="Email" />

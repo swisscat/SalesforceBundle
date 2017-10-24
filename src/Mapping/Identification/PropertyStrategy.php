@@ -55,4 +55,12 @@ class PropertyStrategy implements StrategyInterface
 
         $this->entityManager->flush();
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function getUpsertFieldName(): ?string
+    {
+        return 'Id';
+    }
 }

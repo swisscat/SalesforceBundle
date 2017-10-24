@@ -24,4 +24,9 @@ interface StrategyInterface
      * @param string $action
      */
     public function persistSalesforceAction(string $localId, string $localType, string $salesforceId, string $action): void;
+
+    /**
+     * @return null|string
+     */
+    public function getUpsertFieldName(): ?string;
 }

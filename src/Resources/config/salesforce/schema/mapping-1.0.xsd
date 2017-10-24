@@ -21,7 +21,6 @@
 
     <xs:complexType name="entity">
         <xs:sequence>
-            <xs:element name="id" type="sf:id" minOccurs="1" maxOccurs="1"/>
             <xs:element name="identification-strategies" type="sf:identification-strategies" minOccurs="1" maxOccurs="1" />
             <xs:element name="property" type="sf:property" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -37,11 +36,6 @@
         <xs:attribute name="field" type="xs:NMTOKEN" />
     </xs:complexType>
 
-    <xs:complexType name="id">
-        <xs:attribute name="name" type="xs:NMTOKEN" use="required" />
-        <xs:attribute name="externalId" type="xs:NMTOKEN" />
-    </xs:complexType>
-
     <xs:complexType name="identification-strategies">
         <xs:sequence>
             <xs:element name="strategy" type="sf:strategy" minOccurs="0" maxOccurs="unbounded" />
@@ -51,13 +45,7 @@
     <xs:complexType name="strategy">
         <xs:attribute name="class" type="xs:string" use="required" />
         <xs:attribute name="property" type="xs:string" />
+        <xs:attribute name="matchingField" type="xs:string" />
     </xs:complexType>
-
-    <xs:simpleType name="salesforce-id-type">
-        <xs:restriction base="xs:token">
-            <xs:enumeration value="mappingTable"/>
-            <xs:enumeration value="property" />
-        </xs:restriction>
-    </xs:simpleType>
 
 </xs:schema>

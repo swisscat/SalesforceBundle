@@ -74,15 +74,22 @@ class CustomerLocalPropertyMapperTest extends TestCase
     {
         [$customer,$meta] = self::generateCreateCustomerData();
 
-        $this->em->expects($this->once())
+        $amqp = $this->createMock(Producer::class);
+        $em = $this->createMock(EntityManager::class);
+
+        $driver = new XmlDriver([dirname(__DIR__).'/TestData/local_mapping_property']);
+        $driver->setEntityManager($em);
+        $listener = new SalesforceListener(new AmqpProducer(new Mapper($driver, $em),$amqp));
+
+        $em->expects($this->once())
             ->method('getClassMetadata')
             ->willReturn($meta);
 
-        $this->amqp->expects($this->once())
+        $amqp->expects($this->once())
             ->method('publish')
             ->with('{"salesforce":{"sObject":{"fieldsToNull":[],"FirstName":"First","LastName":"Last","Email":"customer@test.com"},"type":"Contact"},"local":{"id":"10","type":"Swisscat\\\\SalesforceBundle\\\\Test\\\\TestData\\\\Customer"},"action":"create"}');
 
-        $this->listener->publishCreateEvent(new GenericEvent($customer));
+        $listener->publishCreateEvent(new GenericEvent($customer));
     }
 
 }
