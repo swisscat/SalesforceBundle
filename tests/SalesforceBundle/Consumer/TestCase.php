@@ -7,6 +7,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 use Phpforce\SoapClient\BulkSaver;
 use Phpforce\SoapClient\Result\SaveResult;
 use Psr\Log\LoggerInterface;
+use Swisscat\SalesforceBundle\Consumer\SalesforceBack;
 use Swisscat\SalesforceBundle\Consumer\SalesforcePublisherConsumer;
 use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
@@ -27,6 +28,22 @@ class TestCase extends \Swisscat\SalesforceBundle\Test\TestCase
             ->willReturn(\Swisscat\SalesforceBundle\Test\Producer\TestCase::getCustomerMetadata());
 
         return [new SalesforcePublisherConsumer($mapper = new Mapper($driver, $em), $logger = $this->createMock(LoggerInterface::class), $saver = $this->createMock(BulkSaver::class)), $saver, $em];
+    }
+
+    /**
+     * @param $mappingDir
+     * @return \PHPUnit_Framework_MockObject_MockObject[]
+     */
+    protected function createBackConsumer($mappingDir)
+    {
+        $driver = new XmlDriver([dirname(__DIR__).'/TestData/MappingConfigurations/'.$mappingDir]);
+        $driver->setEntityManager($em = $this->createMock(EntityManagerInterface::class));
+
+        $em->expects($this->any())
+            ->method('getClassMetadata')
+            ->willReturn(\Swisscat\SalesforceBundle\Test\Producer\TestCase::getCustomerMetadata());
+
+        return [new SalesforceBack([['name' => 'TestTopic', 'type' => 'topic', 'resource' => 'Swisscat\SalesforceBundle\Test\TestData\Customer']], $em, $driver, $this->createMock(LoggerInterface::class)), $em];
     }
 
     protected function generateSaveResult(array $params)
@@ -62,6 +79,23 @@ class TestCase extends \Swisscat\SalesforceBundle\Test\TestCase
             'local' => [
                 'id' => 10,
                 'type' => 'Swisscat\\SalesforceBundle\\Test\\TestData\\Customer'
+            ]
+        ], $params)));
+    }
+
+    protected function generateAmqpBackMessage(array $params)
+    {
+        return new AMQPMessage(json_encode(array_replace_recursive([
+            'event' => [
+                'createdDate'=> (new \DateTime())->format('Y-m-d\TH:i:s\.u\Z'),
+                'stream' => '/topic/TestTopic',
+                'replayId' => 1,
+            ],
+            'sobject' => [
+                'Email' => 'customer@test.com',
+                'FirstName' => 'First',
+                'LastName' => 'Last',
+                'Id' => '0030Y00000fDbAQQA0'
             ]
         ], $params)));
     }

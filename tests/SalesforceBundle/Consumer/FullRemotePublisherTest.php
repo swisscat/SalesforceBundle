@@ -51,4 +51,16 @@ class FullRemotePublisherTest extends TestCase
 
         $consumer->batchExecute([$message]);
     }
+
+    public function testUpdateCustomerCallback()
+    {
+        $message = $this->generateAmqpBackMessage(['event' => ['type' => 'updated']]);
+
+        list($consumer, $em) = $this->createBackConsumer('FullRemote');
+
+        $em->expects($this->never())
+            ->method('getClassMetadata');
+
+        $consumer->execute($message);
+    }
 }
