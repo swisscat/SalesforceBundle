@@ -15,4 +15,15 @@
                     <property name="city" field="OtherCity" />
                 </property>-->
     </entity>
+    <entity class="Swisscat\SalesforceBundle\Test\TestData\Customer2" object="Contact">
+        <identification-strategies>
+            <strategy class="Swisscat\SalesforceBundle\Mapping\Identification\MappingTableStrategy" />
+        </identification-strategies>
+        <property name="firstName" field="FirstName" />
+        <property name="lastName" field="LastName" />
+        <property name="email" field="Email" />
+        <!--        <property name="defaultAddress">
+                    <property name="city" field="OtherCity" />
+                </property>-->
+    </entity>
 </salesforce-mapping>

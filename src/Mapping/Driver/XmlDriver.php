@@ -100,6 +100,10 @@ class XmlDriver implements DriverInterface
                 $strategy = new $strategyClass();
 
                 if (isset(class_uses($strategy)[EntityManagedTrait::class])) {
+                    if ($this->entityManager === null) {
+                        throw MappingException::missingDriverConfiguration((string)$element['class'], ['EntityManager']);
+                    }
+
                     $strategy->setEntityManager($this->entityManager);
                 }
 

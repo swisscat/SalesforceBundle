@@ -11,6 +11,7 @@ use Swisscat\SalesforceBundle\Consumer\SalesforceBack;
 use Swisscat\SalesforceBundle\Consumer\SalesforcePublisherConsumer;
 use Swisscat\SalesforceBundle\Mapping\Driver\XmlDriver;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\Event;
 
 class TestCase extends \Swisscat\SalesforceBundle\Test\TestCase
 {
@@ -86,17 +87,20 @@ class TestCase extends \Swisscat\SalesforceBundle\Test\TestCase
     protected function generateAmqpBackMessage(array $params)
     {
         return new AMQPMessage(json_encode(array_replace_recursive([
-            'event' => [
-                'createdDate'=> (new \DateTime())->format('Y-m-d\TH:i:s\.u\Z'),
-                'stream' => '/topic/TestTopic',
-                'replayId' => 1,
+            'channel' => '/topic/TestTopic',
+            'data' => [
+                'event' => [
+                    'createdDate'=> (new \DateTime())->format(Event::DateFormat),
+                    'type' => 'created',
+                    'replayId' => 1,
+                ],
+                'sobject' => [
+                    'Email' => 'customer@test.com',
+                    'FirstName' => 'First',
+                    'LastName' => 'Last',
+                    'Id' => '0030Y00000fDbAQQA0'
+                ],
             ],
-            'sobject' => [
-                'Email' => 'customer@test.com',
-                'FirstName' => 'First',
-                'LastName' => 'Last',
-                'Id' => '0030Y00000fDbAQQA0'
-            ]
         ], $params)));
     }
 }

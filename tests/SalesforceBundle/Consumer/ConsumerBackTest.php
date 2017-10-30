@@ -58,6 +58,19 @@ class ConsumerBackTest extends TestCase
         $this->assertEquals($this->consumer->execute($message), false);
     }
 
+    /**
+     * @dataProvider invalidDateProvider
+     */
+    public function testEventDateParsing($json, $exceptionMessage)
+    {
+        $message = new AMQPMessage($json);
+
+        $this->expectException(\TypeError::class);
+        $this->expectExceptionMessage($exceptionMessage);
+
+        $this->assertEquals($this->consumer->execute($message), false);
+    }
+
     public function testLoggingOnNoEntity()
     {
         $this->logger->expects($this->once())
@@ -72,7 +85,7 @@ class ConsumerBackTest extends TestCase
             ->method('findOneBy')
             ->willReturn(null);
 
-        $message = new AMQPMessage('{"event":{"stream":"/topic/TestTopic"},"sobject":{"Id":"sf1234"}}');
+        $message = new AMQPMessage('{"channel":"/topic/TestTopic","data":{"event":{"type":"","createdDate":"2016-03-29T16:40:08.208Z","replayId":10},"sobject":{"Id":"sf1234"}}}');
 
         $this->consumer->execute($message);
     }
@@ -93,7 +106,7 @@ class ConsumerBackTest extends TestCase
             ->method('getClassMetadata')
             ->willReturn($metadata);
 
-        $message = new AMQPMessage('{"event":{"stream":"/topic/TestTopic"},"sobject":{"Id":"sf1234","FirstName":"Test","LastName":"Consumer","Email":"test@test.com"}}');
+        $message = new AMQPMessage('{"channel":"/topic/TestTopic","data":{"event":{"type":"","createdDate":"2016-03-29T16:40:08.208Z","replayId":10},"sobject":{"Id":"sf1234","FirstName":"Test","LastName":"Consumer","Email":"test@test.com"}}}');
 
         $this->consumer->execute($message);
     }
@@ -101,12 +114,24 @@ class ConsumerBackTest extends TestCase
     public function jsonMessageProvider()
     {
         return [
-            ['{}', 'Expected the key "event" to exist.'],
-            ['{"event":{"stream":null}}', 'Unsupported'],
-            ['{"event":{}}', 'Expected the key "stream" to exist.'],
-            ['{"event":{"stream":"/topic/invalidTopic"}}', 'Topic not found in configuration: invalidTopic'],
-            ['{"event":{"stream":"/topic/TestTopic"}}', 'Expected the key "sobject" to exist.'],
-            ['{"event":{"stream":"/topic/TestTopic"},"sobject":{}}', 'Expected the key "Id" to exist.'],
+            ['{}', 'Expected the key "channel" to exist.'],
+            ['{"channel":null,"data":{"event":null,"sobject":null}}', 'Expected an array. Got: NULL'],
+            ['{"channel":null,"data":{"event":null}}', 'Expected the key "sobject" to exist.'],
+            ['{"channel":null,"data":{"event":{},"sobject":null}}', 'Expected the key "type" to exist.'],
+            ['{"channel":null,"data":{"event":{"type":null},"sobject":null}}', 'Expected the key "replayId" to exist.'],
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null},"sobject":null}}', 'Expected the key "replayId" to exist.'],
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null,"replayId":1},"sobject":null}}', 'Expected the key "createdDate" to exist.'],
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null,"replayId":1,"createdDate":"2012-02-01T01:01:01.000Z"},"sobject":null}}', 'Topic not found in configuration: invalidTopic'],
+            ['{"channel":"/otherChannel","data":{"event":{"type":null,"replayId":1,"createdDate":"2012-02-01T01:01:01.000Z"},"sobject":null}}', 'Unsupported channel: /otherChannel'],
+        ];
+    }
+
+    public function invalidDateProvider()
+    {
+        return [
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null,"replayId":1,"createdDate":null},"sobject":null}}', 'Argument 5 passed to Swisscat\SalesforceBundle\Mapping\Salesforce\Event::__construct() must be an instance of DateTime, boolean given'],
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null,"replayId":1,"createdDate":"2012-02-01 10:00:01"},"sobject":null}}', 'Argument 5 passed to Swisscat\SalesforceBundle\Mapping\Salesforce\Event::__construct() must be an instance of DateTime, boolean given'],
+            ['{"channel":"/topic/invalidTopic","data":{"event":{"type":null,"replayId":1,"createdDate":"2012-02-01T10:00:01"},"sobject":null}}', 'Argument 5 passed to Swisscat\SalesforceBundle\Mapping\Salesforce\Event::__construct() must be an instance of DateTime, boolean given']
         ];
     }
 }

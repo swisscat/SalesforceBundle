@@ -2,6 +2,7 @@
 
 namespace Swisscat\SalesforceBundle\Consumer;
 
+use InvalidArgumentException;
 use Doctrine\ORM\EntityManagerInterface;
 use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -9,6 +10,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Swisscat\SalesforceBundle\Mapping\Driver\DriverInterface;
 use Swisscat\SalesforceBundle\Mapping\Mapper;
+use Swisscat\SalesforceBundle\Mapping\Salesforce\Event;
 use Webmozart\Assert\Assert;
 
 class SalesforceBack implements ConsumerInterface
@@ -55,7 +57,7 @@ class SalesforceBack implements ConsumerInterface
             }
         }
 
-        throw new \InvalidArgumentException(sprintf('Topic not found in configuration: %s', $topicName));
+        throw new InvalidArgumentException(sprintf('Topic not found in configuration: %s', $topicName));
     }
 
     public function execute(AMQPMessage $msg)
@@ -65,30 +67,27 @@ class SalesforceBack implements ConsumerInterface
             return false;
         }
 
-        Assert::keyExists($body, 'event');
-        $eventMetadata = $body['event'];
-        Assert::keyExists($eventMetadata, 'stream');
+        $event = Event::fromArray($body);
 
-        // Stream topic
-        if (strpos($eventMetadata['stream'], '/topic/') === 0) {
-            $config = $this->findTopic(substr($eventMetadata['stream'], 7));
+        // Determine channel type
+        if (strpos($channel = $event->getChannel(), '/topic/') === 0) {
+            $config = $this->findTopic(substr($channel, 7));
         } else {
-            throw new \InvalidArgumentException('Unsupported');
+            throw new \InvalidArgumentException(sprintf('Unsupported channel: %s', $channel));
         }
 
-        Assert::keyExists($body, 'sobject');
-        Assert::keyExists($body['sobject'], 'Id');
-        $salesforceId = $body['sobject']["Id"];
-        $entityType = $config['resource'];
+        $sObject = $event->getSObject();
+        Assert::propertyExists($sObject, 'Id');
 
-        $entity = $this->mapper->getEntity($entityType, $salesforceId);
+        $entityType = $config['resource'];
+        $entity = $this->mapper->getEntity($entityType, $sObject->Id);
 
         if ($entity === null) {
             $this->logger->log(LogLevel::INFO, 'No local storage');
             return true;
         }
 
-        $this->mapper->mapFromSalesforceObject((object)$body['sobject'], $entity);
+        $this->mapper->mapFromSalesforceObject($sObject, $entity);
 
         $this->entityManager->persist($entity);
         $this->entityManager->flush();

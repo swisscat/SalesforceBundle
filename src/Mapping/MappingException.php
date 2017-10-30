@@ -18,4 +18,9 @@ class MappingException extends \Exception
     {
         return new self(sprintf("Invalid mapping definition for class %s: %s", $className, $reason));
     }
+
+    public static function missingDriverConfiguration(string $className, array $config)
+    {
+        return new self(sprintf("The following configurations are missing for class %s: %s", $className, implode(',',$config)));
+    }
 }
