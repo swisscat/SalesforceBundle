@@ -11,4 +11,9 @@ interface DriverInterface
      * @return ClassMetadata
      */
     public function loadMetadataForClass(string $className) : ClassMetadata ;
+
+    /**
+     * @return array
+     */
+    public function getAllClassNames(): array;
 }

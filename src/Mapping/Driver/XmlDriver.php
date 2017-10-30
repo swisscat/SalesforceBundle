@@ -12,16 +12,28 @@ use Swisscat\SalesforceBundle\Mapping\MappingException;
 use Symfony\Component\Config\Exception\FileLocatorFileNotFoundException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\FileLocatorInterface;
+use Symfony\Component\Finder\SplFileInfo;
 
 class XmlDriver implements DriverInterface
 {
+    /**
+     * @var FileLocator
+     */
     private $fileLocator;
 
+    /**
+     * @var EntityManagerInterface|null
+     */
     private $entityManager;
+
+    /**
+     * @var array
+     */
+    private $paths;
 
     public function __construct(array $paths)
     {
-        $this->fileLocator = new FileLocator($paths);
+        $this->fileLocator = new FileLocator($this->paths = $paths);
     }
 
     public function setEntityManager(EntityManagerInterface $entityManager)
@@ -46,6 +58,25 @@ class XmlDriver implements DriverInterface
     {
         $metadata = new ClassMetadata();
 
+        $classes = $this->loadClassesFromMappingFile($fileName);
+
+        if (!isset($classes[$className])) {
+            throw MappingException::couldNotFindMappingForClass($className);
+        }
+
+        $entityElement = $classes[$className];
+
+        $metadata->setSalesforceType((string)$entityElement['object']);
+        $this->setFieldMappings($metadata, $entityElement);
+        $this->setIdentificationStrategies($metadata, $entityElement);
+
+        return $metadata;
+    }
+
+    protected function loadClassesFromMappingFile(string $fileName)
+    {
+        $classes = [];
+
         try {
             $xmlElement = simplexml_load_file($fileName);
         } catch (\Exception $e) {
@@ -56,19 +87,11 @@ class XmlDriver implements DriverInterface
             foreach ($xmlElement->entity as $entityElement) {
                 $entityClass = (string)$entityElement['class'];
 
-                if ($entityClass !== $className) {
-                    continue;
-                }
-
-                $metadata->setSalesforceType((string)$entityElement['object']);
-                $this->setFieldMappings($metadata, $entityElement);
-                $this->setIdentificationStrategies($metadata, $entityElement);
-
-                return $metadata;
+                $classes[$entityClass] = $entityElement;
             }
         }
 
-        throw MappingException::couldNotFindMappingForClass($className);
+        return $classes;
     }
 
     private function setFieldMappings(ClassMetadata $metadata, \SimpleXMLElement $element)
@@ -120,5 +143,39 @@ class XmlDriver implements DriverInterface
                 $metadata->addIdentificationStrategy($strategy);
             }
         }
+    }
+
+    /**
+     * @inheritdoc
+     * @throws MappingException
+     */
+    public function getAllClassNames(): array
+    {
+        $classes = [];
+
+        if ($this->paths) {
+            foreach ($this->paths as $path) {
+                if ( ! is_dir($path)) {
+                    throw MappingException::invalidMappingDefinition('all', 'invalid directory '.$path);
+                }
+
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($path),
+                    \RecursiveIteratorIterator::LEAVES_ONLY
+                );
+
+                foreach ($iterator as $file) {
+                    $fileName = $file->getBasename('.mapping.xml');
+
+                    if ($fileName == $file->getBasename()) {
+                        continue;
+                    }
+
+                    $classes = array_merge($classes, array_keys($this->loadClassesFromMappingFile($file->getPathname())));
+                }
+            }
+        }
+
+        return $classes;
     }
 }

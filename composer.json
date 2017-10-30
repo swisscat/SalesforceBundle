@@ -17,6 +17,7 @@
     "guzzlehttp/guzzle": "6.3.*",
     "phpforce/soap-client": "*",
     "php-amqplib/rabbitmq-bundle": "1.*",
+    "symfony/framework-bundle": "*",
     "symfony/http-kernel": "*"
   },
   "require-dev": {
