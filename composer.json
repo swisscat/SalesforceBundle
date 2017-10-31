@@ -24,9 +24,6 @@
     "phpunit/phpunit": "*",
     "matthiasnoback/symfony-dependency-injection-test": "dev-master"
   },
-  "config": {
-    "bin-dir": "bin"
-  },
   "autoload": {
     "psr-4": { "Swisscat\\SalesforceBundle\\": "src/" }
   },

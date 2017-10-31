@@ -44,17 +44,23 @@ pushTopic.NotifyForFields = 'Referenced';
 insert pushTopic;
 EOD;
 
-
-    public function dumpSoqlConfiguration(): string
+    public function dumpSoqlConfiguration(bool $includeDelete = false): string
     {
         $classNames = $this->xmlDriver->getAllClassNames();
 
         $soqlConfig = [];
 
+        if ($includeDelete) {
+            $soqlConfig[] = <<<EOD
+List<PushTopic> pts = [SELECT Id FROM PushTopic];
+Database.delete(pts);
+EOD;
+        }
+
         foreach ($classNames as $className) {
             $metadata = $this->xmlDriver->loadMetadataForClass($className);
 
-            $allFields = array_merge(['Id'], $metadata->getFieldNames());
+            $allFields = array_merge(['Id', 'SystemModStamp'], $metadata->getFieldNames());
 
             //TODO: Add link SF
             if (in_array('FirstName', $allFields)) {
